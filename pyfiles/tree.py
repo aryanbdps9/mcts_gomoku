@@ -37,13 +37,13 @@ class Tree:
 				best_idx = idx
 			# print(f"after:\tval:{val}\tbest_val:{best_val}\taction:{children[idx][1]}")
 		best_child = children[best_idx][0]
+		self.root.print_value()
+
 		self.root = best_child
 		self.root.parent = None
 		self.root.parent_action = -1
 		self.root.offset_depth(-1)
 		gc.collect()
-
-		self.root.print_value()
 		# self.root = Node(self, best_child.board, parent_action=-1, parent=None, turn=best_child.turn)
 		print(f"performed {num_selects} iterations")
 		return self.root.board
