@@ -20,7 +20,6 @@ def player_move(board):
 			else:	
 				return pos
 
-
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-b", "--board_size", type=int, default=15)
@@ -30,6 +29,7 @@ def main():
 	parser.add_argument("-d", "--max_depth", type=int, default=5)
 	parser.add_argument("-t", "--timeout", type=int, default=1)
 	parser.add_argument("-s", "--selfplay", type=int, default=0)
+	parser.add_argument("-w", "--num_workers", type=int, default=4)
 	args = parser.parse_args()
 
 	N, linesize = args.board_size, args.line_size
@@ -37,7 +37,7 @@ def main():
 	C = args.exploration_coeff
 
 	game = Game(N, linesize)
-	tree = Tree(game, num_rollouts, C, max_depth, timeout)
+	tree = Tree(game, num_rollouts, C, max_depth, timeout, num_workers=args.num_workers)
 
 	turn = 0
 	print_board(tree.root.board)
@@ -57,8 +57,6 @@ def main():
 
 		print_board(board)
 		if(tree.root.gameover != 0):
-			print("------Updated Board------")
-			print_board(board)
 			if(turn == 1):
 				print("Congrats!! You Won...")
 			else:
