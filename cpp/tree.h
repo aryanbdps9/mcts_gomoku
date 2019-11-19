@@ -24,7 +24,7 @@ class Tree{
 
 	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4);
 
-	vector<vector<int> > play_one_move();
+	vector<vector<int> > play_one_move(vector<int> &mymove);
 
 	vector<vector<int> > player_move(vector<int> place);
 };
@@ -54,7 +54,7 @@ public:
 
 	void print_value();
 	
-	void calcUCT(int& uct_opp, int& exploration_bonus);
+	void calcUCT(double& uct_opp, double& exploration_bonus);
 };
 
 #endif

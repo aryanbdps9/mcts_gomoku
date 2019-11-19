@@ -106,3 +106,4 @@ venv.bak/
 
 *.gch
 *.out
+.vscode

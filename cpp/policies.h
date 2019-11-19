@@ -11,7 +11,7 @@ using namespace std;
 
 class policy{
 	public:
-	vector<int> get_action(vector<vector<int> > &board, int current_player);
+	virtual vector<int> get_action(vector<vector<int> > &board, int current_player);
 };
 
 class policy_random : public policy{

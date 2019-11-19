@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 #include "game.h"
 #include "tree.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -22,28 +23,6 @@ vector<int> player_move(vector<vector<int> > &board){
 	}
 }
 
-void print_board(vector<vector<int> > &board){
-	int N = board.size();
-	cout << "N " << N  << endl;
-	string gap = "\t";
-	cout << gap;
-	for (int i = 0; i < N; i++){
-		cout << i << gap;
-	}
-	cout << endl;
-	string char_;
-	for (int i = 0; i < N; i++){
-		cout << i << gap;
-		for (int j = 0; j < N; j++){
-			if (board[i][j] == 1) char_ = "X";
-			else if (board[i][j] == 2) char_ = "O";
-			else char_ = "-";
-			cout << char_ << gap;
-		}
-		cout << endl;
-	}
-}
-
 int main(int argc, char* argv[]){
 	int board_size=atoi(argv[1]), linesize=atoi(argv[2]), num_rollouts=atoi(argv[3]), max_depth=atoi(argv[5]), timeout=atoi(argv[6]), selfplay=atoi(argv[7]), num_workers=atoi(argv[8]);
 	float exploration_coeff=atof(argv[4]);
@@ -59,6 +38,7 @@ int main(int argc, char* argv[]){
 	cout << "printing board\n";
 	print_board(tree.root->board);
 	vector<vector<int> > board;
+	vector<int> pos;
 	while (true){
 		board = tree.root->board;
 		cout << "turn of ";
@@ -66,22 +46,23 @@ int main(int argc, char* argv[]){
 		else cout << "X\n";
 		if (turn == 2){
 			if (selfplay == 0){
-				vector<int> pos = player_move(board);
+				pos = player_move(board);
 				board = tree.player_move(pos);
 				// cout <<
 			}
 			else{
-				board = tree.play_one_move();
+				board = tree.play_one_move(pos);
 			}
 		}
 		else{
 			cout << "playing by computer\n";
-			board = tree.play_one_move();
+			board = tree.play_one_move(pos);
 			cout << "played by computer\n";
 		}
 
 		print_board(board);
-		if (tree.root->gameover != 0){
+		int judgement = tree.game->judge(board, pos);
+		if (judgement){
 			string plr;
 			if (turn == 2) plr = "O";
 			else plr = "X";

@@ -4,6 +4,7 @@
 using namespace std;
 
 vector<int> policy::get_action(vector<vector<int> > &board, int current_player){
+	cerr << "policy::get_action is being called\n";
 	vector<int> ret;
 	return ret;
 }

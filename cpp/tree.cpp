@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 #include "tree.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -7,9 +8,9 @@ using namespace std;
 void rollout_workers(vector<vector<int> > board, int current_player, vector<int> last_move_at, Tree* tree, int* ret){
 	int judgement;
 	while (true){
-		if (last_move_at[0] < 0 || last_move_at[1] < 0){
+		if (!(last_move_at[0] < 0 || last_move_at[1] < 0)){
 			judgement = tree->game->judge(board, last_move_at);
-			if (!judgement){
+			if (judgement){
 				*ret = judgement;
 				return;
 			}
@@ -30,7 +31,7 @@ double perform_rollouts(vector<vector<int> > board, int current_player, vector<i
 	int curvals[num_workers];
 	thread workers[num_workers];
 	int jobs_left = tree->num_rollouts;
-	double val = 0.0d;
+	double val = 0.0;
 	int opponent = ((current_player%2)+1);
 	while(jobs_left > 0){
 		int batch_size = 0;
@@ -62,39 +63,39 @@ Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, 
 	int n = this->game->n;
 	vector<int> parent_action = {-1,-1};
 	vector<vector<int> > board(n, vector<int> (n, 0));
-	// cout << "Tree::Tree: board.size = " << board.size() << endl;
 	this->root = new Node(this, board, parent_action, NULL, 0, 1);
 }
 
-vector<vector<int> > Tree::play_one_move(){
+vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 	int num_selects = 0;
 	auto t_start = chrono::high_resolution_clock::now();
 	auto t_end = chrono::high_resolution_clock::now();
 	auto exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
 	while(exec_time < this->timeout){
-		t_start = chrono::high_resolution_clock::now();
+		t_end = chrono::high_resolution_clock::now();
 		exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
 		root->select();
 		num_selects++;
 	}
 	vector<Node *> children = root->children;
 	int num_child = children.size();
-	int best_val = -1e9;
+	double best_val = -1e9;
 	int best_idx = -1;
 	for(int i=0; i<num_child; i++){
 		Node * child = children[i];
-		int val = -child->value;
+		double val = -child->value;
 		if(best_idx == -1 or val >= best_val){
 			best_val = val;
 			best_idx = i;
 		}
 	}
 	Node * best_child = children[best_idx];
+	root->print_value();
 	root = best_child;
 	root->parent = NULL;
+	mymove = root->parent_action;
 	root->parent_action = {-1, -1};
 	root->offset_depth(-1);
-	root->print_value();
 	cout<<"performed "<<num_selects<<" iterations"<<endl;
 	return root->board;
 }
@@ -109,7 +110,11 @@ vector<vector<int> > Tree::player_move(vector<int> place){
 			newroot = children[i];
 		}
 	}
-	assert(newroot != NULL);
+	if (newroot == NULL){
+		vector<vector<int> > newboard = root->board;
+		newboard[place[0]][place[1]] = root->turn;
+		newroot = new Node(root->tree, newboard, place, root);
+	}
 	root = newroot;
 	root->parent = NULL;
 	root->parent_action = {-1, -1};
@@ -122,7 +127,7 @@ Node::Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action, 
 	this->board = board;
 	this->parent = parent;
 	this->depth = parent==NULL?1:parent->depth+1;
-	this->turn = parent==NULL?turn:(parent->depth%2)+1;
+	this->turn = parent==NULL?turn:(parent->turn%2)+1;
 	this->parent_action = parent_action;
 	this->gameover = gameover;
 }
@@ -130,9 +135,11 @@ Node::Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action, 
 void Node::generate_children(Node * node, vector<Node*> &children, vector<vector<int> > &actions){
 	vector< vector<int> > board = node->board;
 	int N = board.size();
+	int c = 0;
 	for(int i=0; i<N; i++){
 		for(int j=0; j<N; j++){
 			if(board[i][j] == 0){
+				c++;
 				vector< vector<int> > newboard = board;
 				newboard[i][j] = node->turn;
 				vector<int> position = {i,j};
@@ -176,8 +183,9 @@ void Node::select(){
 		return;
 	}
 	int opp_move = ((turn%2)+1);
-	int bestUCT, best_idx = -1;
-	float uctval;
+	int best_idx = -1;
+	double bestUCT;
+	double uctval;
 	int idx = -1;
 	for (auto child: children){
 		idx += 1;
@@ -190,7 +198,7 @@ void Node::select(){
 			uctval = (0-2) + 0;
 		}
 		else{
-			int uct_opp, exploration_bonus;
+			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
@@ -201,7 +209,7 @@ void Node::select(){
 	}
 
 	if (gameover == turn){
-		value = 1;
+		value = 1.0;
 		return;
 	}
 
@@ -217,16 +225,18 @@ void Node::select(){
 void Node::print_value(){
 
 	int N = children.size();
+	cout << "print_value: N" << N << endl;
+	cout << "[";
 	for(int i=0; i<N; i++){
-		int val = children[i]->value;
+		double val = children[i]->value;
 		if(val != 0.0){
 			cout<<"["<<actions[i][0]<<", "<<actions[i][1]<<"]: "<<val<<"\t";
 		}
-	}	
+	}
+	cout << "]\n";
 }
 
-void Node::calcUCT(int& uct_opp, int& exploration_bonus){
-
+void Node::calcUCT(double & uct_opp, double & exploration_bonus){
 	uct_opp = value;
 	exploration_bonus = tree->C * sqrt(2*log(tree->T+1) / (visits+1));
 	return;
