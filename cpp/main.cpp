@@ -1,27 +1,10 @@
 #include <bits/stdc++.h>
 #include "game.h"
 #include "tree.h"
+#include "agents.h"
 #include "utils.h"
 
 using namespace std;
-
-vector<int> player_move(vector<vector<int> > &board){
-	int N = board.size();
-	vector<int> pos(2);
-	while (true){
-		cout << "Enter your new mark position(pair of space separated integers):\t";
-		cin >> pos[0] >> pos[1];
-		if (pos[0] < 0 || pos[0] >= N || pos[1] < 0 || pos[1] >= N){
-			cerr << "ERROR: Enter a pair of integers within board range\n";
-			continue;
-		}
-		if (board[pos[0]][pos[1]] != 0){
-			cerr << "ERROR: Enter a position that is empty\n";
-			continue;
-		}
-		return pos;
-	}
-}
 
 int main(int argc, char* argv[]){
 	cout.precision(3);
@@ -34,44 +17,52 @@ int main(int argc, char* argv[]){
 	cout << N << "\t" << linesize << "\t" << num_rollouts << "\t" << C << "\t" << max_depth << "\t" << timeout << "\t" << selfplay << "\t" << num_workers << endl;
 
 	Game game(N, linesize, gamma, alpha);
-	Tree tree(&game, num_rollouts, C, max_depth, timeout, num_workers);
-	int turn = 1;
+	agent *agent1, *agent2;
 
-	cout << "printing board\n";
-	print_board(tree.root->board);
-	vector<vector<int> > board;
-	vector<int> pos;
-	while (true){
-		board = tree.root->board;
-		cout << "turn of ";
-		if (turn == 2) cout << "O\n";
-		else cout << "X\n";
-		if (turn == 2){
-			if (selfplay == 0){
-				pos = player_move(board);
-				board = tree.player_move(pos);
-				// cout <<
-			}
-			else{
-				board = tree.play_one_move(pos);
-			}
+	cout << "Do you want to play first? [y/N]";
+	char c;
+	cin >> c;
+	string name1="X", name2="O";
+	if (!(c == 'Y' || c == 'y')){
+		swap(name1, name2);
+	}
+	if (!selfplay){
+		agent1 = new human_agent(&game, name1, num_rollouts, C, max_depth, timeout, num_workers);
+	}
+	else{
+		agent1 = new random_rollout(&game, name1, num_rollouts, C, max_depth, timeout, num_workers);
+	}
+	agent2 = new random_rollout(&game, name2, num_rollouts, C, max_depth, timeout, num_workers);
+	if (!(c == 'Y' || c == 'y')){
+		swap(agent1, agent2);
+	}
+
+	agent* current_agent = agent1;
+	agent* other_agent = agent2;
+
+	vector<int> mov;
+	vector<vector<int> > board = current_agent->get_board();
+	vector<vector<int> > board2;// = current_agent->get_board();
+	print_board(board);
+	while(true){
+		cout<<current_agent->name<<"\'s turn"<<endl;
+		mov = current_agent->play_move();
+		other_agent->opponent_move(mov);
+		board = current_agent->get_board();
+		// board2 = other_agent->get_board();
+		print_board(board);
+		int judgement = game.judge(board, mov);
+		if(judgement){
+			cout<<current_agent->name<<" won!"<<endl;
+			return 0;
 		}
 		else{
-			cout << "playing by computer\n";
-			board = tree.play_one_move(pos);
-			cout << "played by computer\n";
+			if (count_zeros(board) == 0){
+				cout << "It's a draw!" << endl;
+				return 0;
+			}
 		}
-
-		print_board(board);
-		int judgement = tree.game->judge(board, pos);
-		if (judgement){
-			string plr;
-			if (turn == 2) plr = "O";
-			else plr = "X";
-			cout << "player " << plr << " won!" << endl;
-			break;
-		}
-		turn = (turn%2)+1;
+		swap(current_agent, other_agent);
 	}
-	return 0;
+
 }

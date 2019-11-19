@@ -250,10 +250,10 @@ void Node::select(){
 	for (auto child : children){
 		double len_reward, val_reward;
 		len_reward = tree->game->alpha*(child->potential - this->potential);
-		val_reward = tree->game->gamma * child->value;
+		val_reward = -(tree->game->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
 		if (child->gameover){
-			cout << "child [" << child->parent_action[0] << "," << child->parent_action[1] << "]\t" << "len reward " << len_reward << "\tval_reward" << val_reward << endl;
+			// cout << "child [" << child->parent_action[0] << "," << child->parent_action[1] << "]\t" << "len reward " << len_reward << "\tval_reward" << val_reward << endl;
 		}
 	}
 	// for (auto child : children) value += (tree->game->alpha*(child->potential - this->potential) + tree->game->gamma * child->value)*child->visits;

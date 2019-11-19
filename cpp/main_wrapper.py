@@ -31,3 +31,4 @@ if __name__ == '__main__':
 	main()
 # python main.py -b 7 -t 5 -r 1000
 # python main.py -b 7 -d 3 -t 5 -r 15 -s 1
+# python main_wrapper.py -b 11 -d 5 -t 5 -r 32 -w 64 -s 0 -C 0.1 -O 4 -a 0.0 -g 1 # best yet

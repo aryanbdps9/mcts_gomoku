@@ -78,7 +78,15 @@ void print_board(vector<vector<float> > &board){
 		cout << endl;
 	}
 }
-
+int count_zeros(vector<vector<int> > board){
+	int count = 0;
+	for(int i = 0; i < board.size(); i++){
+		for(int j = 0; j < board[i].size(); j++){
+			if (!board[i][j]) count++;
+		}
+	}
+	return count;
+}
 
 void print_board(vector<vector<int> > &board){
 	int N = board.size();
@@ -98,7 +106,7 @@ void print_board(vector<vector<int> > &board){
 			else char_ = "-";
 			cout << char_ << gap;
 		}
-		cout << endl;
+		cout << "\n" << endl;
 	}
 }
 

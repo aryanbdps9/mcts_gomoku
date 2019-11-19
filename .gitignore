@@ -106,4 +106,6 @@ venv.bak/
 
 *.gch
 *.out
+cpp_tuning
+backup
 .vscode
