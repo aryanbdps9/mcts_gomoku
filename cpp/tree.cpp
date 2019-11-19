@@ -51,8 +51,6 @@ double perform_rollouts(vector<vector<int> > board, int current_player, vector<i
 	return val;
 }
 
-
-
 Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers){
 	this->game = game;
 	this->num_rollouts = num_rollouts;
@@ -63,7 +61,7 @@ Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, 
 	int n = this->game->n;
 	vector<int> parent_action = {-1,-1};
 	vector<vector<int> > board(n, vector<int> (n, 0));
-	this->root = new Node(this, board, parent_action, NULL, 0, 1);
+	this->root = new Node(this, board, parent_action, NULL,0, 0, 1);
 }
 
 vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
@@ -77,6 +75,8 @@ vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 		root->select();
 		num_selects++;
 	}
+
+
 	vector<Node *> children = root->children;
 	int num_child = children.size();
 	double best_val = -1e9;
@@ -89,8 +89,26 @@ vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 			best_idx = i;
 		}
 	}
+
 	Node * best_child = children[best_idx];
 	root->print_value();
+
+	
+	cout << "printing VAL/EB mat\n";
+	print_mat(root->get_ValToEBRatio_mat());
+
+	cout << "printing exploration_bonus mat\n";
+	print_mat(root->get_ExpBon_mat());
+	
+	cout << "printing value mat\n";
+	print_mat(root->get_Val_mat());
+
+	cout << "printing UCT mat\n";
+	print_mat(root->get_UCT_mat());
+
+	cout << "printing visit mat\n";
+	print_mat(root->get_visit_mat());
+
 	root = best_child;
 	root->parent = NULL;
 	mymove = root->parent_action;
@@ -113,7 +131,10 @@ vector<vector<int> > Tree::player_move(vector<int> place){
 	if (newroot == NULL){
 		vector<vector<int> > newboard = root->board;
 		newboard[place[0]][place[1]] = root->turn;
-		newroot = new Node(root->tree, newboard, place, root);
+		int potential = game->potential(newboard, place);
+		// int potential = 0;
+		// Node * child = new Node(node->tree, newboard, position, node, potential, 0, -1);
+		newroot = new Node(root->tree, newboard, place, root, potential);
 	}
 	root = newroot;
 	root->parent = NULL;
@@ -122,7 +143,7 @@ vector<vector<int> > Tree::player_move(vector<int> place){
 	return root->board;
 }
 
-Node::Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action, Node * parent, int gameover, int turn){
+Node::Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action, Node * parent, int potential, int gameover, int turn){
 	this->tree = tree;
 	this->board = board;
 	this->parent = parent;
@@ -130,6 +151,7 @@ Node::Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action, 
 	this->turn = parent==NULL?turn:(parent->turn%2)+1;
 	this->parent_action = parent_action;
 	this->gameover = gameover;
+	this->potential = potential;
 }
 
 void Node::generate_children(Node * node, vector<Node*> &children, vector<vector<int> > &actions){
@@ -143,7 +165,9 @@ void Node::generate_children(Node * node, vector<Node*> &children, vector<vector
 				vector< vector<int> > newboard = board;
 				newboard[i][j] = node->turn;
 				vector<int> position = {i,j};
-				Node * child = new Node(node->tree, newboard, position, node, 0, -1);
+				int potential = node->tree->game->potential(newboard, position);
+				// int potential = 0;
+				Node * child = new Node(node->tree, newboard, position, node, potential, 0, -1);
 				int judgement = child->tree->game->judge(newboard, position);
 				if(judgement == node->turn){
 					child->gameover = node->turn;
@@ -195,20 +219,26 @@ void Node::select(){
 			break;
 		}
 		else if (child->gameover == opp_move){
-			uctval = (0-2) + 0;
+			// uctval = (0-2) + 0;
+			double uct_opp, exploration_bonus;
+			child->calcUCT(uct_opp, exploration_bonus);
+			uctval = (0 - uct_opp) + exploration_bonus;
+			// uctval = (0-2) + 0;
 		}
 		else{
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
-		if (best_idx < 0 || uctval >= bestUCT){
+		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
 		}
 	}
 
 	if (gameover == turn){
+		// cout << "value 100\n";
+		// value = 100.0;
 		value = 1.0;
 		return;
 	}
@@ -217,7 +247,17 @@ void Node::select(){
 
 	// SETTING VALUE
 	value = 0.0;
-	for (auto child : children) value += child->value*child->visits;
+	for (auto child : children){
+		double len_reward, val_reward;
+		len_reward = tree->game->alpha*(child->potential - this->potential);
+		val_reward = tree->game->gamma * child->value;
+		value += (len_reward+val_reward) * child->visits;
+		if (child->gameover){
+			cout << "child [" << child->parent_action[0] << "," << child->parent_action[1] << "]\t" << "len reward " << len_reward << "\tval_reward" << val_reward << endl;
+		}
+	}
+	// for (auto child : children) value += (tree->game->alpha*(child->potential - this->potential) + tree->game->gamma * child->value)*child->visits;
+	// for (auto child : children) value += child->value*child->visits;
 	value /= visits;
 	return;
 }
@@ -240,4 +280,84 @@ void Node::calcUCT(double & uct_opp, double & exploration_bonus){
 	uct_opp = value;
 	exploration_bonus = tree->C * sqrt(2*log(tree->T+1) / (visits+1));
 	return;
+}
+double Node::calcExplornBonus(){
+	return tree->C * sqrt(2*log(tree->T+1) / (visits+1));
+}
+
+vector<vector<int> > Node::get_visit_mat(){
+	vector<vector<int> > ret;
+	int n = board.size();
+	ret.resize(n);
+	int r, c;
+	for(int i = 0; i < n; i++){
+		ret[i].resize(n);
+	}
+	for (int i = 0; i < children.size(); i++){
+		r = actions[i][0];
+		c = actions[i][1];
+		ret[r][c] = children[i]->visits;
+	}
+	return ret;
+}
+vector<vector<double> > Node::get_UCT_mat(){
+	vector<vector<double> > ret;
+	int n = board.size();
+	ret.resize(n);
+	int r, c;
+	for(int i = 0; i < n; i++){
+		ret[i].resize(n);
+	}
+	for (int i = 0; i < children.size(); i++){
+		r = actions[i][0];
+		c = actions[i][1];
+		ret[r][c] = children[i]->calcExplornBonus() - children[i]->value;
+	}
+	return ret;
+}
+vector<vector<double> > Node::get_ExpBon_mat(){
+	vector<vector<double> > ret;
+	int n = board.size();
+	ret.resize(n);
+	int r, c;
+	for(int i = 0; i < n; i++){
+		ret[i].resize(n);
+	}
+	for (int i = 0; i < children.size(); i++){
+		r = actions[i][0];
+		c = actions[i][1];
+		ret[r][c] = children[i]->calcExplornBonus();
+	}
+	return ret;
+}
+vector<vector<double> > Node::get_Val_mat(){
+	vector<vector<double> > ret;
+	int n = board.size();
+	ret.resize(n);
+	int r, c;
+	for(int i = 0; i < n; i++){
+		ret[i].resize(n);
+	}
+	for (int i = 0; i < children.size(); i++){
+		r = actions[i][0];
+		c = actions[i][1];
+		ret[r][c] = children[i]->value;
+	}
+	return ret;
+}
+
+vector<vector<double> > Node::get_ValToEBRatio_mat(){
+	vector<vector<double> > ret;
+	int n = board.size();
+	ret.resize(n);
+	int r, c;
+	for(int i = 0; i < n; i++){
+		ret[i].resize(n);
+	}
+	for (int i = 0; i < children.size(); i++){
+		r = actions[i][0];
+		c = actions[i][1];
+		ret[r][c] = children[i]->value / children[i]->calcExplornBonus();
+	}
+	return ret;
 }

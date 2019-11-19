@@ -11,6 +11,8 @@ def main():
 	parser.add_argument("-t", "--timeout", type=int, default=1)
 	parser.add_argument("-s", "--selfplay", type=int, default=0)
 	parser.add_argument("-w", "--num_workers", type=int, default=4)
+	parser.add_argument("-g", "--gamma", type=float, default=0.99)
+	parser.add_argument("-a", "--alpha", type=float, default=0.1)
 	parser.add_argument("-O", type=str, default="")
 	args = parser.parse_args()
 
@@ -22,7 +24,7 @@ def main():
 	if (args.O != ""):
 		compile_str += " -O"+args.O
 	os.system(compile_str)
-	os.system(f"./a.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers}")
+	os.system(f"./a.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
 
 
 if __name__ == '__main__':

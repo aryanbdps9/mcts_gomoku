@@ -43,8 +43,9 @@ public:
 	int turn;
 	vector<int> parent_action;
 	int gameover;
+	int potential;
 
-	Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action={-1,-1}, Node * parent=NULL, int gameover = 0, int turn = -1);
+	Node(Tree * tree, vector< vector<int> > board, vector<int> parent_action={-1,-1}, Node * parent=NULL, int potential=0, int gameover = 0, int turn = -1);
 
 	static void generate_children(Node * node, vector<Node*> &children, vector<vector<int> > &actions);
 
@@ -55,6 +56,18 @@ public:
 	void print_value();
 	
 	void calcUCT(double& uct_opp, double& exploration_bonus);
+
+	double calcExplornBonus();
+
+	vector<vector<double> > get_ExpBon_mat();
+
+	vector<vector<int> > get_visit_mat();
+
+	vector<vector<double> > get_UCT_mat();
+
+	vector<vector<double> > get_Val_mat();
+
+	vector<vector<double> > get_ValToEBRatio_mat();
 };
 
 #endif
