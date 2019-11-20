@@ -108,5 +108,6 @@ venv.bak/
 *.out
 cpp_tuning
 objects
+mcts.out
 backup
 .vscode

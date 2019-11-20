@@ -20,7 +20,7 @@ def main():
 	num_rollouts, max_depth, timeout = args.num_rollouts, args.max_depth, args.timeout
 	C = args.exploration_coeff
 	os.system('make')
-	os.system(f"./a.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
+	os.system(f"./mcts.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
 
 
 if __name__ == '__main__':
