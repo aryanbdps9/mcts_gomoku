@@ -19,11 +19,7 @@ def main():
 	N, linesize = args.board_size, args.line_size
 	num_rollouts, max_depth, timeout = args.num_rollouts, args.max_depth, args.timeout
 	C = args.exploration_coeff
-	# os.chdir("cpp")
-	compile_str = "g++ *.cpp --std=c++11 -lpthread"
-	if (args.O != ""):
-		compile_str += " -O"+args.O
-	os.system(compile_str)
+	os.system('make')
 	os.system(f"./a.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
 
 
@@ -31,4 +27,4 @@ if __name__ == '__main__':
 	main()
 # python main.py -b 7 -t 5 -r 1000
 # python main.py -b 7 -d 3 -t 5 -r 15 -s 1
-# python main_wrapper.py -b 11 -d 5 -t 5 -r 32 -w 64 -s 0 -C 0.1 -O 4 -a 0.0 -g 1 # best yet
+# python main_wrapper.py -b 11 -d 5 -t 5 -r 32 -w 64 -s 0 -C 0.15 -O 4 -a 0.0 -g 1 # best yet
