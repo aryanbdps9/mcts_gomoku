@@ -41,7 +41,7 @@ int Game::potential(vector<vector<int> > &board, vector<int> currentpos){
 	
 	assert (currentmove != 0);
 
-	for (int row = r+1; row < min(r + linesize, n) && row < n; row++){
+	for (int row = r+1; row < r + linesize && row < n; row++){
 		// vertical top to bottom
 		if (board[row][c] == currentmove){
 			count++;
@@ -66,7 +66,7 @@ int Game::potential(vector<vector<int> > &board, vector<int> currentpos){
 	counts[1] = count;
 	
 	count = 0;
-	for (int col = c+1; col < min(c + linesize, n) && col < n; col++){
+	for (int col = c+1; col < c + linesize && col < n; col++){
 		// horizontal left to right
 		if (board[r][col] == currentmove){
 			count++;
@@ -78,7 +78,7 @@ int Game::potential(vector<vector<int> > &board, vector<int> currentpos){
 	counts[2] = count;
 	
 	count = 0;
-	for (int col = c-1; col >= max(0, c - linesize + 1) && col >= 0; col--){
+	for (int col = c-1; col >= c - linesize + 1 && col >= 0; col--){
 		// horizontal right to left
 		if (board[r][col] == currentmove){
 			count++;
@@ -104,7 +104,7 @@ int Game::potential(vector<vector<int> > &board, vector<int> currentpos){
 	// 
 	count = 0;
 
-	for (int diff = 1; diff < linesize && diff >= c && r+diff < n; diff++){
+	for (int diff = 1; diff < linesize && c >= diff && r+diff < n; diff++){
 		// bottom left
 		if (board[r+diff][c-diff] == currentmove){
 			count++;

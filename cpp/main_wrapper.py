@@ -19,6 +19,7 @@ def main():
 	N, linesize = args.board_size, args.line_size
 	num_rollouts, max_depth, timeout = args.num_rollouts, args.max_depth, args.timeout
 	C = args.exploration_coeff
+	os.makedirs('objects',exist_ok=True)
 	os.system('make')
 	os.system(f"./mcts.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
 
