@@ -171,6 +171,7 @@ void Node::generate_children(Node * node, vector<Node*> &children, vector<vector
 				int judgement = child->tree->game->judge(newboard, position);
 				if(judgement == node->turn){
 					child->gameover = node->turn;
+					child->value = -1;
 					children.clear();
 					actions.clear();
 					children.push_back(child);
@@ -211,37 +212,39 @@ void Node::select(){
 	double bestUCT;
 	double uctval;
 	int idx = -1;
+	double prior_bonus = 0.0;
 	for (auto child: children){
 		idx += 1;
 		if (child->gameover == turn){
 			best_idx = idx;
 			gameover = turn;
+			// added by aryan to include len reward
+			// double len_reward = tree->game->alpha * (child->potential - this->potential);
+			// value = 1.0 + len_reward;
+			value = 1.0;
+			return;
+			// end of addition
 			break;
 		}
 		else if (child->gameover == opp_move){
 			// uctval = (0-2) + 0;
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
-			uctval = (0 - uct_opp) + exploration_bonus;
-			// uctval = (0-2) + 0;
+			// uctval = (0 - uct_opp) + exploration_bonus;
+			uctval = (0-1) + exploration_bonus;
 		}
 		else{
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
+		uctval += (tree->game->alpha * (child->potential - this->potential)) / (1.0+child->visits);
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
 		}
 	}
 
-	if (gameover == turn){
-		// cout << "value 100\n";
-		// value = 100.0;
-		value = 1.0;
-		return;
-	}
 
 	children[best_idx]->select();
 
@@ -249,7 +252,8 @@ void Node::select(){
 	value = 0.0;
 	for (auto child : children){
 		double len_reward, val_reward;
-		len_reward = tree->game->alpha*(child->potential - this->potential);
+		// len_reward = tree->game->alpha*(child->potential - this->potential);
+		len_reward = 0.0;
 		val_reward = -(tree->game->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
 		if (child->gameover){
