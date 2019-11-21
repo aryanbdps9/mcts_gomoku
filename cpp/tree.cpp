@@ -238,7 +238,8 @@ void Node::select(){
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
-		uctval += (tree->game->alpha * (child->potential - this->potential)) / (1.0+child->visits);
+		uctval += (tree->game->alpha * (child->potential)) / (1.0 + child->visits);
+		// uctval += (tree->game->alpha * (child->potential - this->potential)) / (1.0 + child->visits);
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
