@@ -22,10 +22,13 @@ class Tree{
 	int timeout;
 	Node * root;
 	int num_workers;
+	double gamma = 0.99;
+	double alpha = 0.1;
+	double beta = 0.1;
 
 	Mode mode = Vanilla;
 
-	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4, Mode mode = Vanilla);
+	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, Mode mode = Vanilla);
 
 	vector<vector<int> > play_one_move(vector<int> &mymove);
 	vector<vector<int> > player_move(vector<int> place);

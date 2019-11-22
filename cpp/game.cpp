@@ -5,12 +5,9 @@
 
 using namespace std;
 
-Game::Game(int n, int linesize, double gamma, double alpha, double beta, int verbose){
+Game::Game(int n, int linesize, int verbose){
 	this->n = n;
 	this->linesize = linesize;
-	this->gamma = gamma;
-	this->alpha = alpha;
-	this->beta = beta;
 	this->verbose = verbose;
 }
 
