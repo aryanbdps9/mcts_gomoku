@@ -1,71 +1,53 @@
 import argparse
 import os
+import subprocess
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-n", "--num_games", type=int, default=1)
-	parser.add_argument("-b", "--board_size", type=int, default=15)
-	parser.add_argument("-l", "--line_size", type=int, default=5)
-	parser.add_argument("-m", "--mode", type=str, default="00000000")
-	parser.add_argument("-v", "--verbose", type=int, default=0)
-
-	parser.add_argument("-r", "--num_rollouts_1", type=int, default=100)
-	parser.add_argument("-d", "--max_depth_1", type=int, default=5)
-	parser.add_argument("-t", "--timeout_1", type=int, default=1)
-	parser.add_argument("-w", "--num_workers_1", type=int, default=4)
-	parser.add_argument("-c", "--exploration_coeff_1", type=float, default=1.0)
-	parser.add_argument("-g", "--gamma_1", type=float, default=0.99)
-	parser.add_argument("-a", "--alpha_1", type=float, default=0.1)
-	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
-
-		
-	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)
-	parser.add_argument("-D", "--max_depth_2", type=int, default=-1)
-	parser.add_argument("-T", "--timeout_2", type=int, default=-1)
-	parser.add_argument("-W", "--num_workers_2", type=int, default=-1)
-	parser.add_argument("-C", "--exploration_coeff_2", type=float, default=-1.0)
-	parser.add_argument("-G", "--gamma_2", type=float, default=-1.0)
-	parser.add_argument("-A", "--alpha_2", type=float, default=-1.0)
-	parser.add_argument("-Z", "--beta_2", type=float, default=-1.0)
-
+	parser.add_argument("config", type=str)
+	parser.add_argument("n", type=int, default=25)
+	parser.add_argument("log")
+	parser.add_argument("parsed")
 	args = parser.parse_args()
 
-	if (args.num_rollouts_2 < 0):
-		args.num_rollouts_2 = args.num_rollouts_1
-	if (args.max_depth_2 < 0):
-		args.max_depth_2 = args.max_depth_1
-	if (args.timeout_2 < 0):
-		args.timeout_2 = args.timeout_1
-	if (args.num_workers_2 < 0):
-		args.num_workers_2 = args.num_workers_1
-	if (args.exploration_coeff_2 < 0):
-		args.exploration_coeff_2 = args.exploration_coeff_1
-	if (args.gamma_2 < 0):
-		args.gamma_2 = args.gamma_1
-	if (args.alpha_2 < 0):
-		args.alpha_2 = args.alpha_1
-	if (args.beta_2 < 0):
-		args.beta_2 = args.beta_1
+	with open(args.config, 'r') as cf:
+		config_str = cf.read()
 
-	num_games = args.num_games
-	N, linesize = args.board_size, args.line_size
-	num_rollouts_1, max_depth_1, timeout_1 = args.num_rollouts_1, args.max_depth_1, args.timeout_1
-	num_rollouts_2, max_depth_2, timeout_2 = args.num_rollouts_2, args.max_depth_2, args.timeout_2
-	mode = int(args.mode, 2)
-	os.makedirs('objects',exist_ok=True)
-	os.system('make')
-	cmd_str = f"./mcts.out {N} {linesize} {mode} {args.verbose} {num_rollouts_1} {max_depth_1} {timeout_1} {args.num_workers_1} {args.exploration_coeff_1} {args.gamma_1} {args.alpha_1} {args.beta_1} {num_rollouts_2} {max_depth_2} {timeout_2} {args.num_workers_2} {args.exploration_coeff_2} {args.gamma_2} {args.alpha_2} {args.beta_2}"
-	for i in range(num_games):
-		try:
-			result = subprocess.run(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=None)
-			if result.returncode == 0:
-				print(int(result.stdout.decode('utf-8')))
-			else:
-				print(result.stderr.decode('utf-8').strip().split('\n')[-1])
-		except:
-			print("Execution Error")
-		# os.system(cmd_str)
+	n = args.n
+	configs = config_str.split("\n")
+	logfile = open(args.log, 'a')
+	parsedfile = open(args.parsed, 'w')
+	for config in configs:
+		config = config.strip()
+		if (len(config) == 0):
+			continue
 
+		wc, lc, dc = [0]*3
+		match_count = 0
+		cmd_str = config
+		for run_ in range(n):
+			print("\t".join(map(str, [wc, lc, dc, match_count])) + "\n")
+			try:
+				result = subprocess.run(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=None)
+				decoded = result.stdout.decode('utf-8')
+				if (decoded[0] == '1'):
+					wc += 1
+				elif (decoded[0] == '2'):
+					lc += 1
+				else:
+					dc += 1
+				match_count += 1
+				
+			except Exception as e:
+				decoded = str(e)
+				pass
+			logfile.write(cmd_str+'\n')
+			logfile.write(decoded+'\n')
+			logfile.write("\t".join(map(str, [wc, lc, dc, match_count])) + "\n")
+			logfile.write('#'*40+'\n')
+			logfile.flush()
+		parsedfile.write("\t".join(map(str, [wc, lc, dc, match_count])) + "\n")
+		parsedfile.flush()
 
 if __name__ == '__main__':
 	main()

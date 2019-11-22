@@ -111,3 +111,5 @@ objects
 mcts.out
 backup
 .vscode
+*.log
+*.parsed
