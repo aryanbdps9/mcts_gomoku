@@ -8,17 +8,18 @@ using namespace std;
 
 int main(int argc, char* argv[]){
 	cout.precision(3);
-	int board_size=atoi(argv[1]), linesize=atoi(argv[2]), num_rollouts=atoi(argv[3]), max_depth=atoi(argv[5]), timeout=atoi(argv[6]), mode=atoi(argv[7]), num_workers=atoi(argv[8]), verbose=atoi(argv[11]);
+	int board_size=atoi(argv[1]), linesize=atoi(argv[2]), mode=atoi(argv[3]), verbose=atoi(argv[4]), num_rollouts_1=atoi(argv[5]), max_depth_1=atoi(argv[6]), timeout_1=atoi(argv[7]), num_workers_1=atoi(argv[8]), num_rollouts_2=atoi(argv[13]), max_depth_2=atoi(argv[14]), timeout_2=atoi(argv[15]), num_workers_2=atoi(argv[16]);
 
-	float exploration_coeff=atof(argv[4]);
-	float gamma=atof(argv[9]),alpha=atof(argv[10]);
+	float exploration_coeff_1 = atof(argv[9]), gamma_1 = atof(argv[10]), alpha_1 = atof(argv[11]), beta_1 = atof(argv[12]);
+	float exploration_coeff_2 = atof(argv[17]), gamma_2 = atof(argv[18]), alpha_2 = atof(argv[19]), beta_2 = atof(argv[20]);
 
 	int N = board_size;
-	float C = exploration_coeff;
-	if (verbose > 1)
-		cout << "args in cpp:\t" << N << "\t" << linesize << "\t" << num_rollouts << "\t" << C << "\t" << max_depth << "\t" << timeout << "\t" << mode << "\t" << num_workers << "\t" << verbose << endl;
+	float C_1 = exploration_coeff_1, C_2 = exploration_coeff_2;
 
-	Game game(N, linesize, gamma, alpha, verbose);
+	// if (verbose > 1)
+	// 	cout << "args in cpp:\t" << N << "\t" << linesize << "\t" << num_rollouts << "\t" << C << "\t" << max_depth << "\t" << timeout << "\t" << mode << "\t" << num_workers << "\t" << verbose << endl;
+
+	Game game(N, linesize, gamma_1, alpha_1, verbose); // TODO GAMMA ALPHA BETA
 	agent *agent1, *agent2;
 
 	vector<int> players = get_flags(mode, 2);
@@ -39,14 +40,14 @@ int main(int argc, char* argv[]){
 		agent1 = new human_agent(&game, player_name0);
 	}
 	else{
-		agent1 = new random_rollout(&game, player_name0, num_rollouts, C, max_depth, timeout, num_workers, players[0]);
+		agent1 = new random_rollout(&game, player_name0, num_rollouts_1, C_1, max_depth_1, timeout_1, num_workers_1, players[0]);
 	}
 
 	if ((players[1] - 4 == 0)){ // TODO
 		agent2 = new human_agent(&game, player_name1);
 	}
 	else{
-		agent2 = new random_rollout(&game, player_name1, num_rollouts, C, max_depth, timeout, num_workers, players[1]-4);
+		agent2 = new random_rollout(&game, player_name1, num_rollouts_2, C_2, max_depth_2, timeout_2, num_workers_2, players[1]-4);
 	}
 
 	agent* current_agent = agent1;
@@ -69,7 +70,6 @@ int main(int argc, char* argv[]){
 		if (verbose > 0)
 			print_board(board);
 		int judgement = game.judge(board, mov);
-		cout << "main bc move " << move << endl;
 		if(judgement){
 			if (verbose > 0)
 				cout<<current_agent->name<<" won!"<<endl;
