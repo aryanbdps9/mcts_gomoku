@@ -5,12 +5,13 @@
 
 using namespace std;
 
-Game::Game(int n, int linesize, double gamma, double alpha, double beta){
+Game::Game(int n, int linesize, double gamma, double alpha, double beta, int verbose){
 	this->n = n;
 	this->linesize = linesize;
 	this->gamma = gamma;
 	this->alpha = alpha;
 	this->beta = beta;
+	this->verbose = verbose;
 }
 
 int Game::judge(vector<vector<int> > &board, vector<int> currentpos){

@@ -51,7 +51,7 @@ double perform_rollouts(vector<vector<int> > board, int current_player, vector<i
 	return val;
 }
 
-Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers){
+Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers, Mode mode){
 	this->game = game;
 	this->num_rollouts = num_rollouts;
 	this->C = C;
@@ -62,6 +62,7 @@ Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, 
 	vector<int> parent_action = {-1,-1};
 	vector<vector<int> > board(n, vector<int> (n, 0));
 	this->root = new Node(this, board, parent_action, NULL,0, 0, 1);
+	this->mode = mode;
 }
 
 vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
@@ -91,30 +92,32 @@ vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 	}
 
 	Node * best_child = children[best_idx];
-	root->print_value();
 
+	if (game->verbose > 1){
+		root->print_value();
+		cout << "printing VAL/EB mat\n";
+		print_mat(root->get_ValToEBRatio_mat());
+
+		cout << "printing exploration_bonus mat\n";
+		print_mat(root->get_ExpBon_mat());
+		
+		cout << "printing value mat\n";
+		print_mat(root->get_Val_mat());
+
+		cout << "printing UCT mat\n";
+		print_mat(root->get_UCT_mat());
+
+		cout << "printing visit mat\n";
+		print_mat(root->get_visit_mat());
 	
-	cout << "printing VAL/EB mat\n";
-	print_mat(root->get_ValToEBRatio_mat());
-
-	cout << "printing exploration_bonus mat\n";
-	print_mat(root->get_ExpBon_mat());
-	
-	cout << "printing value mat\n";
-	print_mat(root->get_Val_mat());
-
-	cout << "printing UCT mat\n";
-	print_mat(root->get_UCT_mat());
-
-	cout << "printing visit mat\n";
-	print_mat(root->get_visit_mat());
+		cout<<"performed "<<num_selects<<" iterations"<<endl;
+	}
 
 	root = best_child;
 	root->parent = NULL;
 	mymove = root->parent_action;
 	root->parent_action = {-1, -1};
 	root->offset_depth(-1);
-	// cout<<"performed "<<num_selects<<" iterations"<<endl;
 	return root->board;
 }
 
@@ -218,28 +221,30 @@ void Node::select(){
 		if (child->gameover == turn){
 			best_idx = idx;
 			gameover = turn;
-			// added by aryan to include len reward
-			double len_reward = tree->game->alpha*child->potential;
-			value = 1.0 + len_reward;
-			// value = 1.0;
-			return;
-			// end of addition
-			break;
+			switch(tree->mode){
+				case Prior:
+				case Vanilla:
+					value = 1.0;
+					return;
+				case RewShape:
+					double len_reward = tree->game->alpha * child->potential;
+					value = 1.0 + len_reward;
+					return;
+			}
 		}
 		else if (child->gameover == opp_move){
-			// uctval = (0-2) + 0;
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
-			// uctval = (0 - uct_opp) + exploration_bonus;
 			uctval = (0-1) + exploration_bonus;
+			// TODO
 		}
 		else{
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
-		uctval += (tree->game->beta * (child->potential)) / (1.0 + child->visits);
-		// uctval += (tree->game->alpha * (child->potential - this->potential)) / (1.0 + child->visits);
+		uctval += (tree->game->alpha * (child->potential)) / (1.0 + child->visits);
+		
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
@@ -253,16 +258,13 @@ void Node::select(){
 	value = 0.0;
 	for (auto child : children){
 		double len_reward, val_reward;
-		len_reward = tree->game->alpha*child->potential;
-		// len_reward = 0.0;
+		len_reward = 0.0;
+		if (tree->mode == RewShape){
+			len_reward = tree->game->alpha*child->potential;
+		}
 		val_reward = -(tree->game->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
-		if (child->gameover){
-			// cout << "child [" << child->parent_action[0] << "," << child->parent_action[1] << "]\t" << "len reward " << len_reward << "\tval_reward" << val_reward << endl;
-		}
 	}
-	// for (auto child : children) value += (tree->game->alpha*(child->potential - this->potential) + tree->game->gamma * child->value)*child->visits;
-	// for (auto child : children) value += child->value*child->visits;
 	value /= visits;
 	return;
 }

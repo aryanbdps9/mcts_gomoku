@@ -10,8 +10,8 @@ vector<int> agent::play_move(){}
 void agent::opponent_move(vector<int> pos){}
 
 
-random_rollout::random_rollout(Game *game, string name, int num_rollouts, double C, int max_depth, double timeout, int num_workers):agent(game, name){
-	tree = new Tree(game, num_rollouts, C, max_depth, timeout, num_workers);
+random_rollout::random_rollout(Game *game, string name, int num_rollouts, double C, int max_depth, double timeout, int num_workers, int mode):agent(game, name){
+	tree = new Tree(game, num_rollouts, C, max_depth, timeout, num_workers, modeint2enum(mode));
 }
 
 vector<int> random_rollout::play_move(){
@@ -28,7 +28,7 @@ vector<vector<int> > random_rollout::get_board(){
 	return tree->root->board;
 }
 
-human_agent::human_agent(Game *game, string name, int num_rollouts, double C, int max_depth, double timeout, int num_workers):agent(game, name){
+human_agent::human_agent(Game *game, string name, int num_rollouts, double C, int max_depth, double timeout, int num_workers, int mode):agent(game, name){
 	vector<vector<int> > temp(game->n, vector<int>(game->n, 0));
 	board = temp;
 }

@@ -5,6 +5,7 @@
 #include<bits/stdc++.h>
 #include "game.h"
 #include "policies.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -22,10 +23,11 @@ class Tree{
 	Node * root;
 	int num_workers;
 
-	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4);
+	Mode mode = Vanilla;
+
+	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4, Mode mode = Vanilla);
 
 	vector<vector<int> > play_one_move(vector<int> &mymove);
-
 	vector<vector<int> > player_move(vector<int> place);
 };
 
