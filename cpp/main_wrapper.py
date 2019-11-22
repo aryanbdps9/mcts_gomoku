@@ -13,6 +13,7 @@ def main():
 	parser.add_argument("-w", "--num_workers", type=int, default=4)
 	parser.add_argument("-g", "--gamma", type=float, default=0.99)
 	parser.add_argument("-a", "--alpha", type=float, default=0.1)
+	parser.add_argument("-z", "--beta", type=float, default=0.1)
 	parser.add_argument("-O", type=str, default="")
 	args = parser.parse_args()
 
@@ -21,7 +22,7 @@ def main():
 	C = args.exploration_coeff
 	os.makedirs('objects',exist_ok=True)
 	os.system('make')
-	os.system(f"./mcts.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha}")
+	os.system(f"./mcts.out {N} {linesize} {num_rollouts} {C} {max_depth} {timeout} {args.selfplay} {args.num_workers} {args.gamma} {args.alpha} {args.beta}")
 
 
 if __name__ == '__main__':

@@ -114,7 +114,7 @@ vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 	mymove = root->parent_action;
 	root->parent_action = {-1, -1};
 	root->offset_depth(-1);
-	cout<<"performed "<<num_selects<<" iterations"<<endl;
+	// cout<<"performed "<<num_selects<<" iterations"<<endl;
 	return root->board;
 }
 
@@ -219,9 +219,9 @@ void Node::select(){
 			best_idx = idx;
 			gameover = turn;
 			// added by aryan to include len reward
-			// double len_reward = tree->game->alpha * (child->potential - this->potential);
-			// value = 1.0 + len_reward;
-			value = 1.0;
+			double len_reward = tree->game->alpha*child->potential;
+			value = 1.0 + len_reward;
+			// value = 1.0;
 			return;
 			// end of addition
 			break;
@@ -238,7 +238,7 @@ void Node::select(){
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
-		uctval += (tree->game->alpha * (child->potential)) / (1.0 + child->visits);
+		uctval += (tree->game->beta * (child->potential)) / (1.0 + child->visits);
 		// uctval += (tree->game->alpha * (child->potential - this->potential)) / (1.0 + child->visits);
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
@@ -253,8 +253,8 @@ void Node::select(){
 	value = 0.0;
 	for (auto child : children){
 		double len_reward, val_reward;
-		// len_reward = tree->game->alpha*(child->potential - this->potential);
-		len_reward = 0.0;
+		len_reward = tree->game->alpha*child->potential;
+		// len_reward = 0.0;
 		val_reward = -(tree->game->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
 		if (child->gameover){

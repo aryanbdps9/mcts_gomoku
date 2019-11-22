@@ -65,7 +65,7 @@ void print_board(vector<vector<float> > &board){
 	for (int i = 0; i < N; i++){
 		cout << i << gap;
 	}
-	cout << endl;
+	cout << endl << endl;
 	string char_;
 	for (int i = 0; i < N; i++){
 		cout << i << gap;
@@ -96,7 +96,7 @@ void print_board(vector<vector<int> > &board){
 	for (int i = 0; i < N; i++){
 		cout << i << gap;
 	}
-	cout << endl;
+	cout << endl << endl;
 	string char_;
 	for (int i = 0; i < N; i++){
 		cout << i << gap;
