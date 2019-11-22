@@ -12,16 +12,12 @@ class Game{
 	public:
 	int n;
 	int linesize;
-	double gamma = 0.99;
-	double alpha = 0.1;
-	double beta = 0.1;
 	int verbose = 0;
 	policy *policies[2] = {new policy_random(), new policy_random()};
-    Game(int n, int linesize, double gamma, double alpha, double beta, int verbose);
+    Game(int n, int linesize, int verbose);
 
 	int judge(vector<vector<int> > &board, vector<int> currentpos);
 	int potential(vector<vector<int> > &board, vector<int> currentpos);
 };
-
 
 #endif

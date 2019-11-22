@@ -51,17 +51,20 @@ double perform_rollouts(vector<vector<int> > board, int current_player, vector<i
 	return val;
 }
 
-Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers, Mode mode){
+Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, Mode mode){
 	this->game = game;
 	this->num_rollouts = num_rollouts;
 	this->C = C;
 	this->maxdepth = max_depth;
 	this->timeout = timeout;
 	this->num_workers = num_workers;
+	this->gamma = gamma;
+	this->alpha = alpha;
+	this->beta = beta;
 	int n = this->game->n;
 	vector<int> parent_action = {-1,-1};
 	vector<vector<int> > board(n, vector<int> (n, 0));
-	this->root = new Node(this, board, parent_action, NULL,0, 0, 1);
+	this->root = new Node(this, board, parent_action, NULL, 0, 0, 1);
 	this->mode = mode;
 }
 
@@ -227,7 +230,7 @@ void Node::select(){
 					value = 1.0;
 					return;
 				case RewShape:
-					double len_reward = tree->game->alpha * child->potential;
+					double len_reward = tree->alpha * child->potential;
 					value = 1.0 + len_reward;
 					return;
 			}
@@ -243,14 +246,13 @@ void Node::select(){
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
-		uctval += (tree->game->alpha * (child->potential)) / (1.0 + child->visits);
+		uctval += (tree->beta * (child->potential)) / (1.0 + child->visits);
 		
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
 		}
 	}
-
 
 	children[best_idx]->select();
 
@@ -260,9 +262,9 @@ void Node::select(){
 		double len_reward, val_reward;
 		len_reward = 0.0;
 		if (tree->mode == RewShape){
-			len_reward = tree->game->alpha*child->potential;
+			len_reward = tree->alpha*child->potential;
 		}
-		val_reward = -(tree->game->gamma * child->value);
+		val_reward = -(tree->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
 	}
 	value /= visits;

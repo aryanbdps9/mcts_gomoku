@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
 	// if (verbose > 1)
 	// 	cout << "args in cpp:\t" << N << "\t" << linesize << "\t" << num_rollouts << "\t" << C << "\t" << max_depth << "\t" << timeout << "\t" << mode << "\t" << num_workers << "\t" << verbose << endl;
 
-	Game game(N, linesize, gamma_1, alpha_1, beta_1, verbose); // TODO GAMMA ALPHA BETA
+	Game game(N, linesize, verbose);
 	agent *agent1, *agent2;
 
 	vector<int> players = get_flags(mode, 2);
@@ -40,14 +40,14 @@ int main(int argc, char* argv[]){
 		agent1 = new human_agent(&game, player_name0);
 	}
 	else{
-		agent1 = new random_rollout(&game, player_name0, num_rollouts_1, C_1, max_depth_1, timeout_1, num_workers_1, players[0]);
+		agent1 = new random_rollout(&game, player_name0, num_rollouts_1, C_1, max_depth_1, timeout_1, num_workers_1, gamma_1, alpha_1, beta_1, players[0]);
 	}
 
 	if ((players[1] - 4 == 0)){ // TODO
 		agent2 = new human_agent(&game, player_name1);
 	}
 	else{
-		agent2 = new random_rollout(&game, player_name1, num_rollouts_2, C_2, max_depth_2, timeout_2, num_workers_2, players[1]-4);
+		agent2 = new random_rollout(&game, player_name1, num_rollouts_2, C_2, max_depth_2, timeout_2, num_workers_2, gamma_2, alpha_2, beta_2, players[1]-4);
 	}
 
 	agent* current_agent = agent1;

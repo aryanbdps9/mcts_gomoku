@@ -17,7 +17,6 @@ def main():
 	parser.add_argument("-a", "--alpha_1", type=float, default=0.1)
 	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
 
-		
 	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)
 	parser.add_argument("-D", "--max_depth_2", type=int, default=-1)
 	parser.add_argument("-T", "--timeout_2", type=int, default=-1)
