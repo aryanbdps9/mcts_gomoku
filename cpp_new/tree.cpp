@@ -70,12 +70,12 @@ Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, 
 
 vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
 	int num_selects = 0;
-	auto t_start = chrono::high_resolution_clock::now();
-	auto t_end = chrono::high_resolution_clock::now();
-	auto exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
-	while(exec_time < this->timeout){
-		t_end = chrono::high_resolution_clock::now();
-		exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
+	// auto t_start = chrono::high_resolution_clock::now();
+	// auto t_end = chrono::high_resolution_clock::now();
+	// auto exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
+	while(num_selects < this->timeout){
+		// t_end = chrono::high_resolution_clock::now();
+		// exec_time = chrono::duration_cast<chrono::duration<double>>(t_end - t_start) .count();
 		root->select();
 		num_selects++;
 	}
