@@ -3,19 +3,19 @@ import os
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-b", "--board_size", type=int, default=15)
+	parser.add_argument("-b", "--board_size", type=int, default=11)
 	parser.add_argument("-l", "--line_size", type=int, default=5)
-	parser.add_argument("-m", "--mode", type=str, default="00000000")
-	parser.add_argument("-v", "--verbose", type=int, default=0)
+	parser.add_argument("-m", "--mode", type=str, default="01000001")
+	parser.add_argument("-v", "--verbose", type=int, default=1)
 	parser.add_argument('--make', type=str, default="yes")
 
-	parser.add_argument("-r", "--num_rollouts_1", type=int, default=100)
+	parser.add_argument("-r", "--num_rollouts_1", type=int, default=96)
 	parser.add_argument("-d", "--max_depth_1", type=int, default=5)
-	parser.add_argument("-t", "--timeout_1", type=int, default=1)
+	parser.add_argument("-t", "--timeout_1", type=int, default=8)
 	parser.add_argument("-w", "--num_workers_1", type=int, default=4)
-	parser.add_argument("-c", "--exploration_coeff_1", type=float, default=1.0)
-	parser.add_argument("-g", "--gamma_1", type=float, default=0.99)
-	parser.add_argument("-a", "--alpha_1", type=float, default=0.1)
+	parser.add_argument("-c", "--exploration_coeff_1", type=float, default=0.22)
+	parser.add_argument("-g", "--gamma_1", type=float, default=1.0)
+	parser.add_argument("-a", "--alpha_1", type=float, default=0.0)
 	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
 
 	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)
