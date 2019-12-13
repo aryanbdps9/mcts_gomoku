@@ -51,7 +51,7 @@ double perform_rollouts(vector<vector<int> > board, int current_player, vector<i
 	return val;
 }
 
-Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, Mode mode){
+Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1){
 	this->game = game;
 	this->num_rollouts = num_rollouts;
 	this->C = C;
@@ -61,11 +61,11 @@ Tree::Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, 
 	this->gamma = gamma;
 	this->alpha = alpha;
 	this->beta = beta;
+	this->beta1 = beta1;
 	int n = this->game->n;
 	vector<int> parent_action = {-1,-1};
 	vector<vector<int> > board(n, vector<int> (n, 0));
 	this->root = new Node(this, board, parent_action, NULL, 0, 0, 1);
-	this->mode = mode;
 }
 
 vector<vector<int> > Tree::play_one_move(vector<int> &mymove){
@@ -218,27 +218,25 @@ void Node::select(){
 	double uctval;
 	int idx = -1;
 	double prior_bonus = 0.0;
+	int total_child_potential = 0;
+	if (tree->beta1 != 0.0){
+		for (auto child: children){
+			total_child_potential += child->potential;
+		}
+	}
 	for (auto child: children){
 		idx += 1;
 		if (child->gameover == turn){
 			best_idx = idx;
 			gameover = turn;
-			switch(tree->mode){
-				case Prior:
-				case Vanilla:
-					value = 1.0;
-					return;
-				case RewShape:
-					double len_reward = tree->alpha * child->potential;
-					value = 1.0 + len_reward;
-					return;
-			}
+			double len_reward = tree->alpha * child->potential;
+			value = 1.0 + len_reward;
+			return;
 		}
 		else if (child->gameover == opp_move){
 			double uct_opp, exploration_bonus;
 			child->calcUCT(uct_opp, exploration_bonus);
 			uctval = (0-1) + exploration_bonus;
-			// TODO
 		}
 		else{
 			double uct_opp, exploration_bonus;
@@ -246,8 +244,6 @@ void Node::select(){
 			uctval = (0-uct_opp) + exploration_bonus;
 		}
 
-		uctval += (tree->beta * (child->potential)) / (1.0 + child->visits);
-		
 		if (best_idx < 0 || uctval > bestUCT){
 			bestUCT = uctval;
 			best_idx = idx;
@@ -260,10 +256,7 @@ void Node::select(){
 	value = 0.0;
 	for (auto child : children){
 		double len_reward, val_reward;
-		len_reward = 0.0;
-		if (tree->mode == RewShape){
-			len_reward = tree->alpha*child->potential;
-		}
+		len_reward = tree->alpha*child->potential;
 		val_reward = -(tree->gamma * child->value);
 		value += (len_reward+val_reward) * child->visits;
 	}
@@ -285,13 +278,25 @@ void Node::print_value(){
 	cout << "]\n";
 }
 
-void Node::calcUCT(double & uct_opp, double & exploration_bonus){
+void Node::calcUCT(double & uct_opp, double & exploration_bonus, int total_child_potential){
 	uct_opp = value;
-	exploration_bonus = tree->C * sqrt(2*log(tree->T+1) / (visits+1));
+	exploration_bonus = tree->C * sqrt(2*log(tree->T+1) / (visits+1.0));
+
+	exploration_bonus += (tree->beta * (potential)) / (1.0 + visits);
+	if (total_child_potential > 0){
+		double p_sa = double(potential) / double(total_child_potential);
+		assert(parent != NULL);
+		exploration_bonus = tree->beta1 * p_sa * sqrt(parent->visits) / (1.0 + visits);
+		// double temp = (tree->beta1 * potential) / ((1.0 + visits) * total_child_potential);
+		// exploration_bonus += temp * (sqrt(visits) / (1 + visits));
+	}
 	return;
 }
-double Node::calcExplornBonus(){
-	return tree->C * sqrt(2*log(tree->T+1) / (visits+1));
+
+double Node::calcExplornBonus(int total_child_potential){
+	double uct_opp, expbon;
+	calcUCT(uct_opp, expbon, total_child_potential);
+	return expbon;
 }
 
 vector<vector<int> > Node::get_visit_mat(){
@@ -309,6 +314,7 @@ vector<vector<int> > Node::get_visit_mat(){
 	}
 	return ret;
 }
+
 vector<vector<double> > Node::get_UCT_mat(){
 	vector<vector<double> > ret;
 	int n = board.size();
@@ -317,13 +323,21 @@ vector<vector<double> > Node::get_UCT_mat(){
 	for(int i = 0; i < n; i++){
 		ret[i].resize(n);
 	}
+	
+	int total_child_potential = 0;
+	if (tree->beta1 != 0.0){
+		for (auto child: children){
+			total_child_potential += child->potential;
+		}
+	}
 	for (int i = 0; i < children.size(); i++){
 		r = actions[i][0];
 		c = actions[i][1];
-		ret[r][c] = children[i]->calcExplornBonus() - children[i]->value;
+		ret[r][c] = -children[i]->value + children[i]->calcExplornBonus(total_child_potential);
 	}
 	return ret;
 }
+
 vector<vector<double> > Node::get_ExpBon_mat(){
 	vector<vector<double> > ret;
 	int n = board.size();
@@ -332,10 +346,16 @@ vector<vector<double> > Node::get_ExpBon_mat(){
 	for(int i = 0; i < n; i++){
 		ret[i].resize(n);
 	}
+	int total_child_potential = 0;
+	if (tree->beta1 != 0.0){
+		for (auto child: children){
+			total_child_potential += child->potential;
+		}
+	}
 	for (int i = 0; i < children.size(); i++){
 		r = actions[i][0];
 		c = actions[i][1];
-		ret[r][c] = children[i]->calcExplornBonus();
+		ret[r][c] = children[i]->calcExplornBonus(total_child_potential);
 	}
 	return ret;
 }
@@ -350,7 +370,7 @@ vector<vector<double> > Node::get_Val_mat(){
 	for (int i = 0; i < children.size(); i++){
 		r = actions[i][0];
 		c = actions[i][1];
-		ret[r][c] = children[i]->value;
+		ret[r][c] = -children[i]->value;
 	}
 	return ret;
 }
@@ -363,10 +383,18 @@ vector<vector<double> > Node::get_ValToEBRatio_mat(){
 	for(int i = 0; i < n; i++){
 		ret[i].resize(n);
 	}
+	
+	int total_child_potential = 0;
+	if (tree->beta1 != 0.0){
+		for (auto child: children){
+			total_child_potential += child->potential;
+		}
+	}
+	
 	for (int i = 0; i < children.size(); i++){
 		r = actions[i][0];
 		c = actions[i][1];
-		ret[r][c] = children[i]->value / children[i]->calcExplornBonus();
+		ret[r][c] = children[i]->value / children[i]->calcExplornBonus(total_child_potential);
 	}
 	return ret;
 }

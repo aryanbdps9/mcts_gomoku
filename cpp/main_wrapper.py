@@ -5,7 +5,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-b", "--board_size", type=int, default=11)
 	parser.add_argument("-l", "--line_size", type=int, default=5)
-	parser.add_argument("-m", "--mode", type=str, default="01000001")
+	parser.add_argument("-m", "--mode", type=str, default="10")
 	parser.add_argument("-v", "--verbose", type=int, default=1)
 	parser.add_argument('--make', type=str, default="yes")
 
@@ -17,6 +17,7 @@ def main():
 	parser.add_argument("-g", "--gamma_1", type=float, default=1.0)
 	parser.add_argument("-a", "--alpha_1", type=float, default=0.0)
 	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
+	parser.add_argument("-z1", "--beta1_1", type=float, default=0.1)
 
 	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)
 	parser.add_argument("-D", "--max_depth_2", type=int, default=-1)
@@ -26,6 +27,7 @@ def main():
 	parser.add_argument("-G", "--gamma_2", type=float, default=-1.0)
 	parser.add_argument("-A", "--alpha_2", type=float, default=-1.0)
 	parser.add_argument("-Z", "--beta_2", type=float, default=-1.0)
+	parser.add_argument("-Z1", "--beta1_2", type=float, default=0.1)
 
 	args = parser.parse_args()
 
@@ -49,12 +51,12 @@ def main():
 	N, linesize = args.board_size, args.line_size
 	num_rollouts_1, max_depth_1, timeout_1 = args.num_rollouts_1, args.max_depth_1, args.timeout_1
 	num_rollouts_2, max_depth_2, timeout_2 = args.num_rollouts_2, args.max_depth_2, args.timeout_2
-	mode = int(args.mode, 2)
+	mode = int(args.mode[-2:], 2)
 	os.makedirs('objects',exist_ok=True)
 	if (args.make == 'yes'):
 		os.system('make')
 
-	cmd_str = f"./mcts.out {N} {linesize} {mode} {args.verbose} {num_rollouts_1} {max_depth_1} {timeout_1} {args.num_workers_1} {args.exploration_coeff_1} {args.gamma_1} {args.alpha_1} {args.beta_1} {num_rollouts_2} {max_depth_2} {timeout_2} {args.num_workers_2} {args.exploration_coeff_2} {args.gamma_2} {args.alpha_2} {args.beta_2}"
+	cmd_str = f"./mcts.out {N} {linesize} {mode} {args.verbose} {num_rollouts_1} {max_depth_1} {timeout_1} {args.num_workers_1} {args.exploration_coeff_1} {args.gamma_1} {args.alpha_1} {args.beta_1} {num_rollouts_2} {max_depth_2} {timeout_2} {args.num_workers_2} {args.exploration_coeff_2} {args.gamma_2} {args.alpha_2} {args.beta_2}  {args.beta1_1} {args.beta1_2}"
 	os.system(cmd_str)
 
 if __name__ == '__main__':

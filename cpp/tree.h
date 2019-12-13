@@ -23,12 +23,11 @@ class Tree{
 	Node * root;
 	int num_workers;
 	double gamma = 0.99;
-	double alpha = 0.1;
-	double beta = 0.1;
+	double alpha = 0.1; // reward_shaping
+	double beta = 0.1; // prior_try0
+	double beta1 = 0.1;
 
-	Mode mode = Vanilla;
-
-	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, Mode mode = Vanilla);
+	Tree(Game * game, int num_rollouts, double C, int max_depth, int timeout, int num_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1);
 
 	vector<vector<int> > play_one_move(vector<int> &mymove);
 	vector<vector<int> > player_move(vector<int> place);
@@ -60,9 +59,9 @@ public:
 
 	void print_value();
 	
-	void calcUCT(double& uct_opp, double& exploration_bonus);
+	void calcUCT(double& uct_opp, double& exploration_bonus, int total_child_potential=0);
 
-	double calcExplornBonus();
+	double calcExplornBonus(int total_child_potential);
 
 	vector<vector<double> > get_ExpBon_mat();
 

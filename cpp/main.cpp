@@ -12,6 +12,7 @@ int main(int argc, char* argv[]){
 
 	float exploration_coeff_1 = atof(argv[9]), gamma_1 = atof(argv[10]), alpha_1 = atof(argv[11]), beta_1 = atof(argv[12]);
 	float exploration_coeff_2 = atof(argv[17]), gamma_2 = atof(argv[18]), alpha_2 = atof(argv[19]), beta_2 = atof(argv[20]);
+	float beta1_1 = atof(argv[21]), beta1_2 = atof(argv[22]);
 
 	int N = board_size;
 	float C_1 = exploration_coeff_1, C_2 = exploration_coeff_2;
@@ -22,32 +23,27 @@ int main(int argc, char* argv[]){
 	Game game(N, linesize, verbose);
 	agent *agent1, *agent2;
 
-	vector<int> players = get_flags(mode, 2);
-	// cout << "fobobofo\n" << endl;
-	// cout << "verbose " << verbose << endl;
+	vector<int> players(2,0);
+	players[1] = mode % 2;
+	players[0] = (mode >= 2) ? 1 : 0;
 	if (verbose > 1){
 		cout << "player1:\t" << players[0];
 		cout << ";\tplayer2:" << players[1] << endl;
 	}
-	if (players.size() != 2){
-		if (verbose > 0)
-			cerr << "not enough players!\n";
-		exit(-1);
-	}
-
 	string player_name0 = "player 1", player_name1 = "player 2";
+
 	if (players[0] == 0){
 		agent1 = new human_agent(&game, player_name0);
 	}
 	else{
-		agent1 = new random_rollout(&game, player_name0, num_rollouts_1, C_1, max_depth_1, timeout_1, num_workers_1, gamma_1, alpha_1, beta_1, players[0]);
+		agent1 = new random_rollout(&game, player_name0, num_rollouts_1, C_1, max_depth_1, timeout_1, num_workers_1, gamma_1, alpha_1, beta_1, beta1_1);
 	}
 
-	if ((players[1] - 4 == 0)){ // TODO
+	if ((players[1] == 0)){ // TODO
 		agent2 = new human_agent(&game, player_name1);
 	}
 	else{
-		agent2 = new random_rollout(&game, player_name1, num_rollouts_2, C_2, max_depth_2, timeout_2, num_workers_2, gamma_2, alpha_2, beta_2, players[1]-4);
+		agent2 = new random_rollout(&game, player_name1, num_rollouts_2, C_2, max_depth_2, timeout_2, num_workers_2, gamma_2, alpha_2, beta_2, beta1_2);
 	}
 
 	agent* current_agent = agent1;
@@ -69,6 +65,7 @@ int main(int argc, char* argv[]){
 		// board2 = other_agent->get_board();
 		if (verbose > 0)
 			print_board(board);
+			cout << "last move at " << mov[0] << "\t" << mov[1] << endl;
 		int judgement = game.judge(board, mov);
 		if(judgement){
 			if (verbose > 0)

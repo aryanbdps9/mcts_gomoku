@@ -114,29 +114,3 @@ void print_line(int n, string c){
     for (int i = 0; i < n; i++) cout << c;
     cout << endl;
 }
-
-vector<int> get_flags(unsigned int input, int k){
-	int cnt = 0;
-	vector<int> ret;
-	for(int i = 0; i < sizeof(int)*8 && cnt < k; i++) {
-		if (input & 0x01){
-			cnt++;
-			ret.push_back(i);
-		}
-		input >>= 1;
-	}
-	return ret;
-}
-
-Mode modeint2enum(int mode){
-	if (mode == 1)
-		return Vanilla;
-	else if (mode == 2)
-		return RewShape;
-	else if (mode == 3)
-		return Prior;
-	else {
-		cerr << "mode is invalid\n";
-		exit(-1);
-	}
-}
