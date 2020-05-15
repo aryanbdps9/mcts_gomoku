@@ -52,7 +52,7 @@ def main():
 	num_rollouts_1, max_depth_1, timeout_1 = args.num_rollouts_1, args.max_depth_1, args.timeout_1
 	num_rollouts_2, max_depth_2, timeout_2 = args.num_rollouts_2, args.max_depth_2, args.timeout_2
 	mode = int(args.mode[-2:], 2)
-	os.makedirs('objects',exist_ok=True)
+	# os.makedirs('objects',exist_ok=True)
 	if (args.make == 'yes'):
 		os.system('make')
 
