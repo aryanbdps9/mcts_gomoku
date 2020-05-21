@@ -3,7 +3,7 @@ OBJ_DIR := build
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 LDFLAGS := -pthread
-CXXFLAGS := -std=c++11 -O4
+CXXFLAGS := -std=c++17 -O4
 INC := -I ./include
 
 mcts.out: $(OBJ_FILES)
@@ -16,5 +16,5 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 clean:
-	rm -rf $(OBJ_FILES)
+	rm -rf $(OBJ_DIR)
 	rm -rf mcts.out

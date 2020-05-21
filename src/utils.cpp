@@ -1,5 +1,18 @@
 #include "utils.h"
 
+vector<int> free_locns(vector<vector<int> > board){
+    vector<int> free_actions;
+    int nr = board.size(), nc = board[0].size();
+    for(int i = 0; i < nr; i++){
+        for(int j = 0; j < nc; j++){
+			if (board[i][j] != 0){
+				free_actions.push_back(nr*i+j);
+			}
+		}
+    }
+	return free_actions;
+}
+
 void print_mat(vector<vector<float> > board){
 	int N = board.size();
 	// cout << "N " << N  << endl;
