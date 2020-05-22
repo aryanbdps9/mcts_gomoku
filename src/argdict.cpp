@@ -22,7 +22,7 @@ int argdict::get_int_arg(string argname){
     return int_args[argname];
 }
 
-int argdict::get_dbl_arg(string argname){
+double argdict::get_dbl_arg(string argname){
     if (double_args.find(argname) == double_args.end())
         throw logic_error("argdict::get_dbl_arg: argument: \""+argname+"\" of type double is not present in the argdict\n");
     return double_args[argname];

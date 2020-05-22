@@ -65,7 +65,7 @@ public:
 	inline bool isLeaf();
 	inline bool isRoot();
 	inline void inc_visit();
-	inline void set_value(int value){this->value = value;}
+	inline void set_value(double value){this->value = value;}
 	inline uint32_t get_visits();
 };
 
@@ -118,11 +118,12 @@ private:
 public:
 	VanillaNode<VanillaTree>* root;
 	const int32_t num_rollout_workers, num_rollouts, max_depth, timeout, linesize;
-	int max_rollout_len=1000;
+	int max_rollout_len=50;
 	double gamma = 0.99;
 	double alpha = 0.1; // reward_shaping
 	double beta = 0.1; // prior_try0
 	double beta1 = 0.1; // PUCT
+	int verbose = 0;
 	int (*potential_fn) (const vector<vector<int> > &board, int last_action, int &gameover, int linesize);
 
 	// VanillaTree() = 0; // Was giving some kind of error.
@@ -134,7 +135,83 @@ public:
 	virtual void opponentMove(int pos);
 	virtual double getRolloutValue(VanillaNode<VanillaTree>* leaf);
 	inline virtual vector<vector<int> > getBoard(){return root->board;}
+	inline virtual void setVerbosity(int v){
+		cout << "yahasfksdfj" << endl;
+		this->verbose = v;
+	}
 };
+
+template <typename TreeType>
+vector<vector<double> > get_Val_mat(BaseNode<TreeType>* node){
+	int nr = node->board.size(), nc = node->board[0].size();
+	vector<vector<double> > res(nr, vector<double> (nc, 0.0));
+	for (auto [action, child]: node->children){
+		res[action/nc][action%nc] = -child->value;
+	}
+	return res;
+}
+
+template <typename TreeType>
+vector<vector<double> > get_UCT_mat(BaseNode<TreeType>* node){
+	int nr = node->board.size(), nc = node->board[0].size();
+	vector<vector<double> > res(nr, vector<double> (nc, 0.0));
+	for (auto [action, child]: node->children){
+		res[action/nc][action%nc] = child->getUCT();
+	}
+	return res;
+}
+
+template <typename TreeType>
+vector<vector<int> > get_visit_mat(BaseNode<TreeType>* node){
+	int nr = node->board.size(), nc = node->board[0].size();
+	vector<vector<int> > res(nr, vector<int> (nc, 0));
+	for (auto [action, child]: node->children){
+		res[action/nc][action%nc] = child->get_visits();
+	}
+	return res;
+}
+
+template <typename TreeType>
+vector<vector<int> > get_gameover_mat(BaseNode<TreeType>* node){
+	int nr = node->board.size(), nc = node->board[0].size();
+	vector<vector<int> > res(nr, vector<int> (nc, -2));
+	for (auto [action, child]: node->children){
+		res[action/nc][action%nc] = static_cast<VanillaNode<TreeType>*>(child)->gameover;
+	}
+	return res;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Node{
 public:

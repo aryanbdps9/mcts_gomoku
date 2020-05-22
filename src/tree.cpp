@@ -59,11 +59,20 @@ int BaseNode<TreeType>::select(){
 	double best_uct = first_child.second->getUCT();
 
 	double current_uct;
+	double best_cnt = 1.0;
 	for (auto &child : children){
 		current_uct = child.second->getUCT();
-		if (current_uct >= best_uct){
+		if (current_uct > best_uct){
 			best_uct = current_uct;
 			best_action = child.first;
+			best_cnt = 1.0;
+		}
+		else if(current_uct == best_uct){
+			best_cnt++;
+			double r = get_random();
+			if (r <= 1.0/best_cnt){
+				best_action = child.first;
+			}
 		}
 	}
 	return best_action;
@@ -134,7 +143,7 @@ void VanillaNode<TreeType>::calcUCT(double& uct_opp, double& exploration_bonus, 
 
 	exploration_bonus += (this->tree->beta * (potential)) / (1.0 + this->visits);
 	if (total_child_potential > 0 && this->tree->beta1 != 0){
-		double p_sa = double(potential) / double(total_child_potential);
+		double p_sa = (potential*1.0)/(total_child_potential);
 		assert(this->parent != NULL);
 		exploration_bonus += this->tree->beta1 * p_sa * sqrt(this->parent->visits) / (1.0 + this->visits);
 	}
@@ -203,7 +212,11 @@ int VanillaNode<TreeType>::expand(){
 		this->children[i] = new_node;
 		this->total_child_potential += new_node->getPotential();
 		count++;
-		if (new_node->gameover == this->turn) this->gameover = this->turn;
+		if (new_node->gameover == this->turn) {
+			this->gameover = this->turn;
+			this->killAllExcept(i);
+			break;
+		}
 	}
 	return count;
 }
@@ -297,8 +310,8 @@ void VanillaTree::playout(){
 	// cout << endl;
 	double leaf_value;
 
+	current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
 	if (current_node->isLeaf() && current_node->gameover == 0){
-		current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
 		leaf_value = getRolloutValue(current_node);
 		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
 	}
@@ -328,23 +341,52 @@ int VanillaTree::getMove(){
 	while(exec_time < this->timeout){
 		t_end = chrono::high_resolution_clock::now();
 		exec_time = chrono::duration_cast<chrono::duration<double> >(t_end - t_start) .count();
-		playout();
-		num_selects++;
+		for (int i = 0; i < 100; i++){
+			playout();
+			num_selects++;
+		}
 	}
-	cout << "num_selects = " << num_selects << endl;
 	// cout << "after playout!";
 	// cout << endl;
 	double best_val = std::numeric_limits<double>::min();
 	int best_action = -1;
+	double best_cnt = 1.0;
 	for (auto [action, child]: root->children){
-		if (best_action == -1 || best_val <= child->value){
-			best_val = child->value;
+		if (best_action == -1 || best_val < child->visits){
+			best_val = child->visits;
 			best_action = action;
+			best_cnt = 1.0;
 		}
+		else if(best_val == child->visits){
+			best_cnt++;
+			double r = get_random();
+			if (r <= 1.0/best_cnt){
+				best_action = action;
+			}
+		}
+		// if (best_action == -1 || best_val <= -child->value){
+		// 	best_val = -child->value;
+		// 	best_action = action;
+		// }
 	}
 	int nr = root->board.size(), nc = root->board[0].size();
 	// printf("best_action = %d[%d,%d]", best_action, best_action/nc, (best_action % nc));
 	// cout << endl;
+	if (this->verbose > 1){
+		cout << "printing GAMEOVER mat\n";
+		print_mat(get_gameover_mat(root));
+
+		cout << "printing UCT mat\n";
+		print_mat(get_UCT_mat(root));
+
+		cout << "printing value mat\n";
+		print_mat(get_Val_mat(root));
+
+		cout << "printing visit mat\n";
+		print_mat(get_visit_mat(root));
+		cout << endl;
+	}
+	cout << "num_selects = " << num_selects << endl;
 
 	root->killAllExcept(best_action);
 	VanillaNode<VanillaTree>* newroot = static_cast<VanillaNode<VanillaTree>*>(root->children[best_action]);
@@ -408,7 +450,7 @@ void rollout_worker(const vector<vector<int> > &board_, int linesize, int last_m
 			if (outcome != 0 || free_actions.empty()){
 				num_rollouts_completed++;
 				num_plr1_wins += int(outcome == 1);
-				num_plr1_loss += int(outcome == 0);
+				num_plr1_loss += int(outcome == 2);
 				if (free_actions.empty()){
 					num_draws++;
 				}
@@ -457,8 +499,88 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	int nr = leaf->board.size(), nc = leaf->board[0].size();
 	int current_plr = 1+((leaf->board[last_action/nc][last_action%nc])%2);
 	if (current_plr == 2) total_reward *= -1;
+	// if (total_reward != 0){
+	// 	cout << "NON ZERO TOTAL REWARD!!!\t";
+	// 	cout << "TR = " << total_reward << ";\t";
+	// 	cout << "TCR = " << total_completed_rollouts  << ";\t";
+	// 	cout << "VAL RET =  " << (1.0*total_reward) / (1.0 * total_completed_rollouts);
+	// 	cout << endl;
+	// }
 	return (1.0*total_reward) / (1.0 * total_completed_rollouts);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

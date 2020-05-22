@@ -5,6 +5,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+double get_random();
+
 class NotImplementedException : public std::logic_error{
 public:
     NotImplementedException () : std::logic_error{"Function not yet implemented."} {}
@@ -28,6 +30,7 @@ void print_mat(vector<vector<double> > board);
 
 int count_zeros(vector<vector<int> > board);
 void print_board(vector<vector<int> > &board);
+void print_board_w_last_move(vector<vector<int> > &board, int lastpos);
 void print_line(int n, string c = "#");
 vector<int> get_flags(unsigned int input, int k=2);
 

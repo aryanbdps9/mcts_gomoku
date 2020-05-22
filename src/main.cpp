@@ -9,6 +9,8 @@
 using namespace std;
 
 int main(int argc, char* argv[]){
+	throw NotImplementedException(); // implement setGameover fn
+	srand(time(NULL));
 	cout.precision(3);
 	int board_size=atoi(argv[1]), linesize=atoi(argv[2]), mode=atoi(argv[3]), verbose=atoi(argv[4]), num_rollouts_1=atoi(argv[5]), max_depth_1=atoi(argv[6]), timeout_1=atoi(argv[7]), num_workers_1=atoi(argv[8]), num_rollouts_2=atoi(argv[13]), max_depth_2=atoi(argv[14]), timeout_2=atoi(argv[15]), num_workers_2=atoi(argv[16]);
 
@@ -23,6 +25,7 @@ int main(int argc, char* argv[]){
 	gameParams.add_int_arg("nr", N);
 	gameParams.add_int_arg("nc", N);
 	gameParams.add_int_arg("linesize", linesize);
+	// cout << "C_1 = " << C_1 << "\tC_2 = " << C_2 << endl;
 	// cout << "gameParams(nr, nc, linesize) = " << gameParams.has_int("nr") << endl;
 	// cout << "gameParams(nr, nc, linesize) = " << gameParams.get_int_arg("nr") << endl;
 
@@ -54,6 +57,8 @@ int main(int argc, char* argv[]){
 	TreeArgDict_2.add_dbl_arg("beta", beta_2);
 	TreeArgDict_2.add_dbl_arg("beta1", beta1_2);
 	TreeArgDict_2.add_int_arg("turn", 1);
+
+	// cout << "C_1ta = " << TreeArgDict_1.get_dbl_arg("C") << endl;
 
 	// if (verbose > 1)
 	// 	cout << "args in cpp:\t" << N << "\t" << linesize << "\t" << num_rollouts << "\t" << C << "\t" << max_depth << "\t" << timeout << "\t" << mode << "\t" << num_workers << "\t" << verbose << endl;
@@ -87,6 +92,9 @@ int main(int argc, char* argv[]){
 		agent2 = new random_rollout(player_name1, gameParams, TreeArgDict_2, 2);
 	}
 
+	agent1->setVerbosity(verbose);
+	agent2->setVerbosity(verbose);
+
 	agent* current_agent = agent1;
 	agent* other_agent = agent2;
 
@@ -107,7 +115,8 @@ int main(int argc, char* argv[]){
 		board = current_agent->get_board();
 		// board2 = other_agent->get_board();
 		if (verbose > 0)
-			print_board(board);
+			print_board_w_last_move(board, mov);
+			// print_board(board);
 			cout << "last move at " << mov / N << "\t" << mov % N << endl;
 		int judgement = judge(board, mov, linesize);
 		if(judgement){

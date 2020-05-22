@@ -15,7 +15,7 @@ public:
     bool add_dbl_arg(string argname, double argval);
 
     int get_int_arg(string argname);
-    int get_dbl_arg(string argname);
+    double get_dbl_arg(string argname);
 
     bool contains_int(string argname);
     bool contains_dbl(string argname);
