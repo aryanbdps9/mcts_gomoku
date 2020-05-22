@@ -2,22 +2,33 @@
 #include "tree.h"
 #include "utils.h"
 #include "shuffle_set.h"
+#include "judge_and_potential.h"
+#include "argdict.h"
 
 using namespace std;
+
+////////////////////////////////////////////////////////////////
 
 template <typename TreeType>
 BaseNode<TreeType>::BaseNode(): tree(nullptr), parent(nullptr), value(0.0), turn(0), parent_action(-1){}
 
 template <typename TreeType>
-BaseNode<TreeType>::BaseNode(int parent_action, BaseNode<TreeType>* parent): tree(parent->tree), board(board), parent(parent), parent_action(parent_action){
+BaseNode<TreeType>::BaseNode(int parent_action, BaseNode<TreeType>* parent): tree(parent->tree), board(parent->board), parent(parent), parent_action(parent_action){
+	// cout << "herer wed9hjjqdoijq" << endl;
 	assert(parent != nullptr);
+	// cout << "herer e123213" << endl;
 	turn = (parent->turn%2)+1;
-	int nr = board.size();//, nc = board[0].size();
-	board[parent_action/nr][parent_action%nr] = parent->turn;
+	// cout << "hererihfsdfjdsfkl" << endl;
+	int nr = board.size(), nc = board[0].size();
+	// cout << "nr = " << nr << "\tnc = " << nc << endl;
+	// cout << "parent_action = " << parent_action << endl;
+	board[parent_action/nc][parent_action%nc] = parent->turn;
 }
 
 template <typename TreeType>
-BaseNode<TreeType>::BaseNode(TreeType* tree, vector<vector<int> > board, uint32_t turn): tree(tree), board(board), parent(nullptr), parent_action(-1), turn(turn){}
+BaseNode<TreeType>::BaseNode(TreeType* tree, vector<vector<int> > board, uint32_t turn): tree(tree), board(board), parent(nullptr), parent_action(-1), turn(turn){
+	// cout << "basenode.turn = " << turn << endl;
+}
 
 template <typename TreeType>
 BaseNode<TreeType>::~BaseNode(){
@@ -136,35 +147,37 @@ int BaseNode<TreeType>::expand(){
 	int nr = board.size(), nc = board[0].size();
 	int count = 0;
 	for (int i = 0; i < nr * nc; i++){
-		if (board[i/nr][i%nr] != 0) continue;
+		if (board[i/nc][i%nc] != 0) continue;
 		children[i] = new BaseNode<TreeType>(i, this);
 		count++;
 	}
 	return count;
 }
 
-
-template <typename TreeType>
-int VanillaNode<TreeType>::updateTCP(){
-	throw NotImplementedException();
-}
-
-
 template <typename TreeType>
 void VanillaNode<TreeType>::offsetDepth(int offset){
-	throw NotImplementedException();
+	depth += offset;
+	for (auto action: this->children){
+		static_cast<VanillaNode<VanillaTree>*>(action.second)->offsetDepth(offset);
+	}
 }
 
-template <typename TreeType>
-VanillaNode<TreeType>::VanillaNode():BaseNode<TreeType>(){
-	this->depth = -1;
-	this->potential = 0;
-}
+// template <typename TreeType>
+// VanillaNode<TreeType>::VanillaNode():BaseNode<TreeType>(){
+// 	this->depth = -1;
+// 	this->potential = 0;
+// }
 
 template <typename TreeType>
 VanillaNode<TreeType>::VanillaNode(int parent_action, VanillaNode<TreeType>* parent): BaseNode<TreeType>(parent_action, parent){
 	this->depth = parent->depth+1;
-	this->potential=this->tree->potential_fn(this->board, parent_action, this->gameover);
+	// cout << "here 5124" << endl;
+	this->potential=this->tree->potential_fn(this->board, parent_action, this->gameover, this->tree->linesize);
+	// cout << "here 214" << endl;
+	if (this->gameover != 0){
+		if (this->gameover == this->turn) this->value = 1;
+		else this->value = -1;
+	}
 }
 
 template <typename TreeType>
@@ -182,29 +195,29 @@ int VanillaNode<TreeType>::expand(){
 	VanillaNode<TreeType>* new_node;
 	this->total_child_potential = 0;
 	for (int i = 0; i < nr * nc; i++){
-		if (this->board[i/nr][i%nr] != 0) continue;
+		// cout << "i = " << i << endl;
+		if (this->board[i/nc][i%nc] != 0) continue;
+		// cout << "here 23423432" << endl;
 		new_node = new VanillaNode<TreeType>(i, this);
+		// cout << "here" << endl;
 		this->children[i] = new_node;
 		this->total_child_potential += new_node->getPotential();
 		count++;
+		if (new_node->gameover == this->turn) this->gameover = this->turn;
 	}
 	return count;
 }
 
-BaseTree::BaseTree(): C(sqrt(2)){}
+BaseTree::BaseTree(): C(sqrt(2)){
+	cerr << "WARNING! Initialising C to sqrt(2)\n";
+}
 
 // BaseTree::BaseTree(BaseNode<BaseTree>* root): root(root){}
 
-BaseTree::BaseTree(double C): C(C){}
-
-BaseTree::~BaseTree(){
-	// delete root;
-}
-
-int BaseTree::gameJudge(vector<vector<int> > &board, int last_action){
-	throw NotImplementedException();
-	return 0;
-}
+// int BaseTree::gameJudge(vector<vector<int> > &board, int last_action){
+// 	throw NotImplementedException();
+// 	return 0;
+// }
 
 /* 
 bool BaseTree::changeRoot(int action){
@@ -221,33 +234,75 @@ bool BaseTree::changeRoot(int action){
 }
  */
 
-VanillaTree::VanillaTree():num_rollout_workers(4), num_rollouts(20), max_depth(5), timeout(10000){}
-
-VanillaTree::VanillaTree(int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1): BaseTree(C), num_rollouts(num_rollouts), max_depth(max_depth), timeout(timeout), num_rollout_workers(num_rollout_workers), gamma(gamma), alpha(alpha), beta(beta), beta1(beta1){}
-
-VanillaTree::~VanillaTree(){
+VanillaTree::VanillaTree():num_rollout_workers(4), num_rollouts(20), max_depth(5), timeout(10000), linesize(5), potential_fn(calc_potential){
+	cerr << "WARNING! Don't use the VanillaTree::VanillaTree() if you are not very sure of what are you doing.\n";
 	throw NotImplementedException();
 }
 
+VanillaTree::VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1): BaseTree(C), num_rollouts(num_rollouts), max_depth(max_depth), timeout(timeout), num_rollout_workers(num_rollout_workers), gamma(gamma), alpha(alpha), beta(beta), beta1(beta1), linesize(linesize), potential_fn(calc_potential){
+	vector<vector<int> > board(nr, vector<int>(nc, 0));
+	root = new VanillaNode<VanillaTree>(this, board, turn);
+	this->root->expand();
+}
+
+VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDict.get_dbl_arg("C")), num_rollouts(VanillaTreeArgDict.get_int_arg("num_rollouts")), num_rollout_workers(VanillaTreeArgDict.get_int_arg("num_rollout_workers")), max_depth(VanillaTreeArgDict.get_int_arg("max_depth")), timeout(VanillaTreeArgDict.get_int_arg("timeout")), linesize(VanillaTreeArgDict.get_int_arg("linesize")), potential_fn(calc_potential){
+	int nc = VanillaTreeArgDict.get_int_arg("nc");
+	int nr = VanillaTreeArgDict.get_int_arg("nr");
+	vector<vector<int> > board(nr, vector<int>(nc, 0));
+	int turn = VanillaTreeArgDict.get_int_arg("turn");
+	this->root = new VanillaNode<VanillaTree>(this, board, turn);
+	this->root->expand();
+	if (VanillaTreeArgDict.has_dbl("gamma"))
+		this->gamma = VanillaTreeArgDict.get_dbl_arg("gamma");
+	if (VanillaTreeArgDict.has_dbl("alpha"))
+		this->alpha = VanillaTreeArgDict.get_dbl_arg("alpha");
+	if (VanillaTreeArgDict.has_dbl("beta"))
+		this->beta = VanillaTreeArgDict.get_dbl_arg("beta");
+	if (VanillaTreeArgDict.has_dbl("beta1"))
+		this->beta1 = VanillaTreeArgDict.get_dbl_arg("beta1");
+}
+
+
+VanillaTree::~VanillaTree(){
+	delete root;
+}
+
 void VanillaTree::playout(){
+	// WARNING! Call only when root can have children!!!
 	/*
 	TODO: consider what happens when you encounter a node with game over
 	Also consider the Multithreaded scenario, where, you might delete a subtree and some worker is in that subtree at that time.
 	*/
 	VanillaNode<VanillaTree>* current_node = root;
+	assert (root != nullptr);
 	int current_action;
+	// cout << "before expand!" << endl;
 	current_node->expand();
 	unsigned int depth = 1;
+	// cout << "before selections" << endl;
+
 	while(!current_node->isLeaf()){
 		current_action = current_node->select(); // TODO use lock for MT
 		current_node->inc_visit(); // TODO use lock for MT
 		current_node = static_cast<VanillaNode<VanillaTree>*>( current_node->children[current_action]);
+		
+		if (current_node->gameover != 0){
+			current_node->set_value((current_node->gameover == current_node->turn?1:-1));
+			break;
+		}
 		depth++;
 		if (depth < max_depth) current_node->expand();
 	}
-	current_node->inc_visit(); // TODO use lock for MT
+	// cout << "VanillaTree::playout!\t" << "before Rollouts!";
+	// cout << endl;
+	double leaf_value;
 
-	double leaf_value = getRolloutValue(current_node);
+	if (current_node->isLeaf() && current_node->gameover == 0){
+		current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
+		leaf_value = getRolloutValue(current_node);
+		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
+	}
+
 	current_node = static_cast<VanillaNode<VanillaTree>*>(current_node->parent);
 	double temp_value, len_reward, val_reward;
 
@@ -264,39 +319,65 @@ void VanillaTree::playout(){
 }
 
 int VanillaTree::getMove(){
+	// WARNING! Call iff the match hasn't tied
 	uint64_t num_selects = 0;
 	auto t_start = chrono::high_resolution_clock::now();
 	auto t_end = chrono::high_resolution_clock::now();
 	auto exec_time = chrono::duration_cast<chrono::duration<double> >(t_end - t_start) .count();
+	// cout << "before playout!" << endl;
 	while(exec_time < this->timeout){
 		t_end = chrono::high_resolution_clock::now();
 		exec_time = chrono::duration_cast<chrono::duration<double> >(t_end - t_start) .count();
 		playout();
 		num_selects++;
 	}
+	cout << "num_selects = " << num_selects << endl;
+	// cout << "after playout!";
+	// cout << endl;
 	double best_val = std::numeric_limits<double>::min();
-	double best_action = -1;
+	int best_action = -1;
 	for (auto [action, child]: root->children){
 		if (best_action == -1 || best_val <= child->value){
 			best_val = child->value;
 			best_action = action;
 		}
 	}
+	int nr = root->board.size(), nc = root->board[0].size();
+	// printf("best_action = %d[%d,%d]", best_action, best_action/nc, (best_action % nc));
+	// cout << endl;
 
 	root->killAllExcept(best_action);
 	VanillaNode<VanillaTree>* newroot = static_cast<VanillaNode<VanillaTree>*>(root->children[best_action]);
 	root->children.clear();
 	delete root;
-	newroot->parent = nullptr;
-	newroot->parent_action = -1;
-
 	root = newroot;
+	root->parent = nullptr;
+	// root->parent_action = -1;
 	root->offsetDepth(-1);
 
 	return best_action;
 }
 
-void rollout_worker(const vector<vector<int> > &board_, int last_move_at, int budget_steps, const int max_rollout_len, int (*judgement) (vector<vector<int> >&, int), int *total_rollouts_performed, int *total_rollouts_completed, int* total_reward_plr1){
+void VanillaTree::opponentMove(int pos){
+	if (root->children.find(pos) == root->children.end()){
+		VanillaNode<VanillaTree>* oldroot = root;
+		root = new VanillaNode<VanillaTree>(pos, oldroot);
+		delete oldroot;
+		root->parent = nullptr;
+		root->offsetDepth(-1);
+	}
+	else{
+		root->killAllExcept(pos);
+		VanillaNode<VanillaTree>* newroot = static_cast<VanillaNode<VanillaTree>*>(root->children[pos]);
+		root->children.clear();
+		delete root;
+		root = newroot;
+		root->parent = nullptr;
+		root->offsetDepth(-1);
+	}
+}
+
+void rollout_worker(const vector<vector<int> > &board_, int linesize, int last_move_at, int budget_steps, const int max_rollout_len, function<int(vector<vector<int> >&, int, int)>judgement, int *total_rollouts_performed, int *total_rollouts_completed, int* total_reward_plr1){
 	vector<vector<int> > board;
 	int num_rollouts_performed = 0, num_rollouts_completed = 0, num_plr1_wins = 0, num_plr1_loss = 0, num_draws = 0;
 	int game_end_result;
@@ -304,6 +385,7 @@ void rollout_worker(const vector<vector<int> > &board_, int last_move_at, int bu
 		int outcome;
 
 	const int nr = board_.size();
+	const int nc = board_[0].size();
 	int last_action, next_action;
 	const vector<int> free_actions_vec = free_locns(board_);
 	shuffle_set<int> free_actions;
@@ -313,16 +395,16 @@ void rollout_worker(const vector<vector<int> > &board_, int last_move_at, int bu
 		last_action = last_move_at;
 		free_actions.init(free_actions_vec.begin(), free_actions_vec.end());
 		for (int steps_in_a_rollout = 0; steps_in_a_rollout < max_rollout_len; steps_in_a_rollout++){
-			last_plr = board[last_action/nr][last_action%nr];
+			last_plr = board[last_action/nc][last_action%nc];
 			next_plr = (last_plr%2) + 1;
 			next_action = free_actions.take_random_elem();
 
-			board[next_action/nr][next_action%nr] = next_plr;
+			board[next_action/nc][next_action%nc] = next_plr;
 			last_plr = next_plr;
 			budget_steps--;
 			last_action = next_action;
 
-			outcome = (*judgement)(board, next_action);
+			outcome = judgement(board, next_action, linesize);
 			if (outcome != 0 || free_actions.empty()){
 				num_rollouts_completed++;
 				num_plr1_wins += int(outcome == 1);
@@ -348,11 +430,35 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	- Total number of rollouts completed
 	- Sum of rewards of all rollouts wrt player 1.
 	*/
-	throw NotImplementedException();
-	return 0.0;
+	int max_steps_to_game_end = count_elems(leaf->board, 0);
+	if (max_steps_to_game_end == 0){
+		cerr << "VanillaTree::getRolloutValue: called on tied match!";
+		return 0.0;
+	}
+	int total_budget = num_rollouts * max_steps_to_game_end;
+	int total_budget_per_worker = total_budget / num_rollout_workers;
+
+	int total_rollouts_performed[num_rollout_workers], total_rollouts_completed[num_rollout_workers], total_reward_plr1[num_rollout_workers];
+
+	thread workers[num_rollout_workers];
+	for(int i = 0; i < num_rollout_workers; i++){
+		workers[i] = thread(rollout_worker, std::ref(leaf->board), linesize, leaf->parent_action, total_budget_per_worker, max_rollout_len, this->gameJudge, total_rollouts_performed+i, total_rollouts_completed+i, total_reward_plr1+i);
+	}
+	for(int i = 0; i < num_rollout_workers; i++){
+		workers[i].join();
+	}
+
+	int total_completed_rollouts = std::accumulate(total_rollouts_completed, total_rollouts_completed+num_rollout_workers, 0);
+	if (total_completed_rollouts == 0) return 0.0;
+
+	int total_reward = std::accumulate(total_reward_plr1, total_reward_plr1+num_rollout_workers, 0);
+
+	int last_action = leaf->parent_action;
+	int nr = leaf->board.size(), nc = leaf->board[0].size();
+	int current_plr = 1+((leaf->board[last_action/nc][last_action%nc])%2);
+	if (current_plr == 2) total_reward *= -1;
+	return (1.0*total_reward) / (1.0 * total_completed_rollouts);
 }
-
-
 
 
 
