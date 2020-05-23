@@ -26,11 +26,6 @@ public:
     T take_random_elem();
 };
 
-// #include<bits/stdc++.h>
-// #include "shuffle_set.h"
-
-// using namespace std;
-
 template <typename T>
 shuffle_set<T>::shuffle_set(){}
 

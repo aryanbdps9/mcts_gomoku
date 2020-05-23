@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-// #include "game.h"
 #include "tree.h"
 #include "agents.h"
 #include "utils.h"
@@ -9,7 +8,7 @@
 using namespace std;
 
 int main(int argc, char* argv[]){
-	throw NotImplementedException(); // implement setGameover fn
+	// throw NotImplementedException(); // implement setGameover fn
 	srand(time(NULL));
 	cout.precision(3);
 	int board_size=atoi(argv[1]), linesize=atoi(argv[2]), mode=atoi(argv[3]), verbose=atoi(argv[4]), num_rollouts_1=atoi(argv[5]), max_depth_1=atoi(argv[6]), timeout_1=atoi(argv[7]), num_workers_1=atoi(argv[8]), num_rollouts_2=atoi(argv[13]), max_depth_2=atoi(argv[14]), timeout_2=atoi(argv[15]), num_workers_2=atoi(argv[16]);

@@ -1,6 +1,5 @@
 #include "agents.h"
 #include "tree.h"
-// #include "game.h"
 
 agent::agent(string name, argdict gameParams, int turn): name(name), nr(gameParams.get_int_arg("nr")), nc(gameParams.get_int_arg("nc")), linesize(gameParams.get_int_arg("linesize")), turn(turn), last_move_at(-1){}
 
