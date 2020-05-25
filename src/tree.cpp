@@ -138,6 +138,50 @@ void VanillaNode<TreeType>::calcUCT(double& uct_opp, double& exploration_bonus, 
 }
 
 template <typename TreeType>
+int VanillaNode<TreeType>::select(){
+	// throw NotImplementedException(); // use gameover to select
+	if (this->children.size() == 0) return -1;
+	auto first_child = *(this->children).begin();
+	int best_action = -1;
+	// double best_uct = first_child.second->getUCT();
+	double best_uct = std::numeric_limits<double>::lowest();
+	double gameovercnt = 0;
+
+	double current_uct;
+	double best_cnt = 1.0;
+	for (auto &child : this->children){
+		if (static_cast<VanillaNode<TreeType>*>(child.second)->gameover == this->turn){
+			gameovercnt++;
+			double r = get_random();
+			if (r <= 1.0/gameovercnt){
+				best_action = child.first;
+				assert (best_action >= 0);
+			}
+		}
+		if (gameovercnt > 0) continue;
+		current_uct = child.second->getUCT();
+		if (current_uct > best_uct){
+			best_uct = current_uct;
+			best_action = child.first;
+			best_cnt = 1.0;
+		}
+		else if(current_uct == best_uct){
+			best_cnt++;
+			double r = get_random();
+			if (r <= 1.0/best_cnt){
+				best_action = child.first;
+			}
+		}
+	}
+	if (best_action < 0){
+		cout << "this->children.size() = " << this->children.size() << endl;
+		cout << "gameovercnt = " << gameovercnt << endl;
+	}
+	assert (best_action >= 0);
+	return best_action;
+}
+
+template <typename TreeType>
 int BaseNode<TreeType>::expand(){
 	if (!children.empty()) return 0;
 	int nr = board.size(), nc = board[0].size();
@@ -148,6 +192,30 @@ int BaseNode<TreeType>::expand(){
 		count++;
 	}
 	return count;
+}
+
+template <typename TreeType>
+void VanillaNode<TreeType>::childGameOver(int newgameover){
+	// this->gameover = newgameover;
+	// if (this->gameover != 0){
+	// 	this->value = this->gameover == this->turn ? 1 : -1;
+	// }
+
+	if (newgameover == this->turn){
+		this->gameover = newgameover;
+		this->value = 1;
+		if (this->parent != nullptr){
+			static_cast<VanillaNode<TreeType>*>(this->parent)->childGameOver(newgameover);
+		}
+		return;
+	}
+	this->gameoverCount++;
+	if (this->gameoverCount < this->children.size()) return;
+
+	this->gameover = newgameover;
+	this->value = -1;
+	if (this->parent != nullptr)
+		static_cast<VanillaNode<TreeType>*>(this->parent)->childGameOver(newgameover);
 }
 
 template <typename TreeType>
@@ -194,9 +262,9 @@ int VanillaNode<TreeType>::expand(){
 		this->total_child_potential += new_node->getPotential();
 		count++;
 		if (new_node->gameover == this->turn) {
-			this->gameover = this->turn;
-			this->killAllExcept(i);
-			break;
+			this->childGameOver(this->turn);
+			// this->killAllExcept(i);
+			// break;
 		}
 	}
 	return count;
@@ -211,16 +279,60 @@ VanillaTree::VanillaTree():num_rollout_workers(4), num_rollouts(20), max_depth(5
 	throw NotImplementedException();
 }
 
-VanillaTree::VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1): BaseTree(C), num_rollouts(num_rollouts), max_depth(max_depth), timeout(timeout), num_rollout_workers(num_rollout_workers), gamma(gamma), alpha(alpha), beta(beta), beta1(beta1), linesize(linesize), potential_fn(calc_potential){
+VanillaTree::VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1, int potfn_v): BaseTree(C), num_rollouts(num_rollouts), max_depth(max_depth), timeout(timeout), num_rollout_workers(num_rollout_workers), gamma(gamma), alpha(alpha), beta(beta), beta1(beta1), linesize(linesize){
+	switch (potfn_v){
+	case 1:
+		potential_fn = calc_potential;
+		break;
+	case 2:
+		potential_fn = calc_potential_disruptive;
+		break;
+	case 3:
+		potential_fn = calc_potential2;
+		break;
+	case 4:
+		potential_fn = calc_potential_disruptive2;
+		break;
+	case 5:
+		potential_fn = uniform_potential;
+		break;
+	default:
+		potential_fn = calc_potential;
+		break;
+	}
 	vector<vector<int> > board(nr, vector<int>(nc, 0));
 	root = new VanillaNode<VanillaTree>(this, board, turn);
 	this->root->expand();
 }
 
-VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDict.get_dbl_arg("C")), num_rollouts(VanillaTreeArgDict.get_int_arg("num_rollouts")), num_rollout_workers(VanillaTreeArgDict.get_int_arg("num_rollout_workers")), max_depth(VanillaTreeArgDict.get_int_arg("max_depth")), timeout(VanillaTreeArgDict.get_int_arg("timeout")), linesize(VanillaTreeArgDict.get_int_arg("linesize")), potential_fn(calc_potential){
+VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDict.get_dbl_arg("C")), num_rollouts(VanillaTreeArgDict.get_int_arg("num_rollouts")), num_rollout_workers(VanillaTreeArgDict.get_int_arg("num_rollout_workers")), max_depth(VanillaTreeArgDict.get_int_arg("max_depth")), timeout(VanillaTreeArgDict.get_int_arg("timeout")), linesize(VanillaTreeArgDict.get_int_arg("linesize")){
+	int potfn_v = VanillaTreeArgDict.has_int("potfn_v") ? VanillaTreeArgDict.get_int_arg("potfn_v") : 1;
+	cout << "potfn_v = " << potfn_v << endl;
+
+	switch (potfn_v){
+	case 1:
+		potential_fn = calc_potential;
+		break;
+	case 2:
+		potential_fn = calc_potential_disruptive;
+		break;
+	case 3:
+		potential_fn = calc_potential2;
+		break;
+	case 4:
+		potential_fn = calc_potential_disruptive2;
+		break;
+	case 5:
+		potential_fn = uniform_potential;
+		break;
+	default:
+		potential_fn = calc_potential;
+		break;
+	}
+
 	int nc = VanillaTreeArgDict.get_int_arg("nc");
 	int nr = VanillaTreeArgDict.get_int_arg("nr");
-	vector<vector<int> > board(nr, vector<int>(nc, 0));
+	vector<vector<int> >  board(nr, vector<int>(nc, 0));
 	int turn = VanillaTreeArgDict.get_int_arg("turn");
 	this->root = new VanillaNode<VanillaTree>(this, board, turn);
 	this->root->expand();
@@ -301,7 +413,7 @@ int VanillaTree::getMove(){
 			num_selects++;
 		}
 	}
-	double best_val = std::numeric_limits<double>::min();
+	double best_val = std::numeric_limits<double>::lowest();
 	int best_action = -1;
 	double best_cnt = 1.0;
 	for (auto [action, child]: root->children){
@@ -453,3 +565,35 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	if (current_plr == 2) total_reward *= -1;
 	return (1.0*total_reward) / (1.0 * total_completed_rollouts);
 }
+
+// template <typename TreeType>
+// GameOverPropagatorNode<TreeType>::GameOverPropagatorNode(){}
+
+// template <typename TreeType>
+// GameOverPropagatorNode<TreeType>::GameOverPropagatorNode(int parent_action, GameOverPropagatorNode<TreeType>* parent):VanillaNode<TreeType>(parent_action, parent){
+// }
+
+// template <typename TreeType>
+// GameOverPropagatorNode<TreeType>::GameOverPropagatorNode(TreeType* tree, vector<vector<int> > board, uint32_t turn): VanillaNode<TreeType>(tree, board, turn){
+// }
+
+// template <typename TreeType>
+// GameOverPropagatorNode<TreeType>::~GameOverPropagatorNode(){
+// }
+
+// template <typename TreeType>
+// void GameOverPropagatorNode<TreeType>::childGameOver(int newgameover){
+// 	if (newgameover == this->turn){
+// 		this->gameover = newgameover;
+// 		if (this->parent != nullptr){
+// 			this->parent->childGameOver(newgameover);
+// 		}
+// 		return;
+// 	}
+// 	this->gameoverCount++;
+// 	if (this->gameoverCount < this->children.size()) return;
+
+// 	this->gameover = newgameover;
+// 	if (this->parent != nullptr)
+// 		this->parent->childGameOver(newgameover);
+// }

@@ -17,6 +17,8 @@ int main(int argc, char* argv[]){
 	float exploration_coeff_2 = atof(argv[17]), gamma_2 = atof(argv[18]), alpha_2 = atof(argv[19]), beta_2 = atof(argv[20]);
 	float beta1_1 = atof(argv[21]), beta1_2 = atof(argv[22]);
 
+	int potfn_v_1 = atoi(argv[23]), potfn_v_2 = atoi(argv[24]);
+
 	int N = board_size;
 	float C_1 = exploration_coeff_1, C_2 = exploration_coeff_2;
 
@@ -42,6 +44,7 @@ int main(int argc, char* argv[]){
 	TreeArgDict_1.add_dbl_arg("beta", beta_1);
 	TreeArgDict_1.add_dbl_arg("beta1", beta1_1);
 	TreeArgDict_1.add_int_arg("turn", 1);
+	TreeArgDict_1.add_int_arg("potfn_v", potfn_v_1);
 	
 	TreeArgDict_2.add_int_arg("nr", N);
 	TreeArgDict_2.add_int_arg("nc", N);
@@ -56,6 +59,7 @@ int main(int argc, char* argv[]){
 	TreeArgDict_2.add_dbl_arg("beta", beta_2);
 	TreeArgDict_2.add_dbl_arg("beta1", beta1_2);
 	TreeArgDict_2.add_int_arg("turn", 1);
+	TreeArgDict_2.add_int_arg("potfn_v", potfn_v_2);
 
 	// cout << "C_1ta = " << TreeArgDict_1.get_dbl_arg("C") << endl;
 
@@ -85,7 +89,7 @@ int main(int argc, char* argv[]){
 	}
 
 	if ((players[1] == 0)){ // TODO
-		agent2 = new human_agent(player_name1, gameParams, 2);
+		agent2 = new human_agent(player_name1, gameParams, 1);
 	}
 	else{
 		agent2 = new random_rollout(player_name1, gameParams, TreeArgDict_2, 2);

@@ -59,12 +59,15 @@ public:
 	int potential, total_child_potential=0;
 	int gameover = 0;
 	double depth;
+	int gameoverCount=0;
 	VanillaNode(int parent_action, VanillaNode<TreeType>* parent);// for non-root init
 	VanillaNode(TreeType* tree, vector<vector<int> > board, uint32_t turn=1); //for root init
 	~VanillaNode();
 	virtual double getUCT();
 	void calcUCT(double& uct_opp, double& exploration_bonus, int total_child_potential=0);
+	virtual int select();
 	virtual int expand();
+	inline virtual void childGameOver(int newgameover);
 	virtual void offsetDepth(int offset);
 	inline virtual int getPotential(){return potential;}
 	inline virtual int getTCP(){return total_child_potential;}
@@ -102,7 +105,7 @@ public:
 	int (*potential_fn) (const vector<vector<int> > &board, int last_action, int &gameover, int linesize);
 
 	// VanillaTree() = 0; // Was giving some kind of error.
-	VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1);
+	VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1, int potfn_v=1);
 	VanillaTree(argdict vanillaTreeArgDict);
 	~VanillaTree();
 	virtual void playout();
@@ -111,10 +114,50 @@ public:
 	virtual double getRolloutValue(VanillaNode<VanillaTree>* leaf);
 	inline virtual vector<vector<int> > getBoard(){return root->board;}
 	inline virtual void setVerbosity(int v){
-		cout << "yahasfksdfj" << endl;
 		this->verbose = v;
 	}
 };
+
+// template <typename TreeType>
+// class GameOverPropagatorNode:public VanillaNode<TreeType>{
+// private:
+// 	GameOverPropagatorNode();
+// public:
+// 	int gameoverCount = 0;
+// 	GameOverPropagatorNode(int parent_action, GameOverPropagatorNode<TreeType>* parent); // for non-root init
+// 	GameOverPropagatorNode(TreeType* tree, vector<vector<int> > board, uint32_t turn=1); //for root init
+// 	~GameOverPropagatorNode();
+// 	virtual void childGameOver(int newgameover);
+// };
+
+// class GameOverPropagatorTree: public VanillaTree{
+// private:
+// 	GameOverPropagatorTree();
+// public:
+// 	GameOverPropagatorTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1, int potfn_v=1);
+// 	GameOverPropagatorTree(argdict TreeArgDict);
+// 	~GameOverPropagatorTree();
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 template <typename TreeType>
 vector<vector<double> > get_Val_mat(BaseNode<TreeType>* node){
