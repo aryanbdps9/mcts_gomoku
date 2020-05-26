@@ -1,9 +1,14 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <string>
+
+
 #include "tree.h"
 #include "agents.h"
 #include "utils.h"
 #include "argdict.h"
 #include "judge_and_potential.h"
+
 
 using namespace std;
 
@@ -18,6 +23,7 @@ int main(int argc, char* argv[]){
 	float beta1_1 = atof(argv[21]), beta1_2 = atof(argv[22]);
 
 	int potfn_v_1 = atoi(argv[23]), potfn_v_2 = atoi(argv[24]);
+	string treetype_1 = argv[25], treetype_2 = argv[26];
 
 	int N = board_size;
 	float C_1 = exploration_coeff_1, C_2 = exploration_coeff_2;
@@ -37,6 +43,7 @@ int main(int argc, char* argv[]){
 	TreeArgDict_1.add_int_arg("num_rollouts", num_rollouts_1);
 	TreeArgDict_1.add_int_arg("num_rollout_workers", num_workers_1);
 	TreeArgDict_1.add_int_arg("max_depth", max_depth_1);
+	TreeArgDict_1.add_int_arg("childless_visit_limit", max_depth_1);
 	TreeArgDict_1.add_int_arg("timeout", timeout_1);
 	TreeArgDict_1.add_int_arg("linesize", linesize);
 	TreeArgDict_1.add_dbl_arg("gamma", gamma_1);
@@ -45,6 +52,7 @@ int main(int argc, char* argv[]){
 	TreeArgDict_1.add_dbl_arg("beta1", beta1_1);
 	TreeArgDict_1.add_int_arg("turn", 1);
 	TreeArgDict_1.add_int_arg("potfn_v", potfn_v_1);
+	TreeArgDict_1.add_str_arg("TreeType", treetype_1);
 	
 	TreeArgDict_2.add_int_arg("nr", N);
 	TreeArgDict_2.add_int_arg("nc", N);
@@ -52,6 +60,7 @@ int main(int argc, char* argv[]){
 	TreeArgDict_2.add_int_arg("num_rollouts", num_rollouts_2);
 	TreeArgDict_2.add_int_arg("num_rollout_workers", num_workers_2);
 	TreeArgDict_2.add_int_arg("max_depth", max_depth_2);
+	TreeArgDict_2.add_int_arg("childless_visit_limit", max_depth_2);
 	TreeArgDict_2.add_int_arg("timeout", timeout_2);
 	TreeArgDict_2.add_int_arg("linesize", linesize);
 	TreeArgDict_2.add_dbl_arg("gamma", gamma_2);
@@ -60,6 +69,15 @@ int main(int argc, char* argv[]){
 	TreeArgDict_2.add_dbl_arg("beta1", beta1_2);
 	TreeArgDict_2.add_int_arg("turn", 1);
 	TreeArgDict_2.add_int_arg("potfn_v", potfn_v_2);
+	TreeArgDict_2.add_str_arg("TreeType", treetype_2);
+
+	if (verbose > 1){
+		cout << "PRINTING TREEARGDICT_1 ..." << endl;
+		cout << TreeArgDict_1.print() << endl;
+		cout << endl;
+		cout << "PRINTING TREEARGDICT_2 ..." << endl;
+		cout << TreeArgDict_2.print() << endl;
+	}
 
 	// cout << "C_1ta = " << TreeArgDict_1.get_dbl_arg("C") << endl;
 

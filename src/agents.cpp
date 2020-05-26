@@ -1,14 +1,30 @@
+#include <iostream>
+#include <vector>
+
 #include "agents.h"
 #include "tree.h"
+#include "utils.h"
+
 
 agent::agent(string name, argdict gameParams, int turn): name(name), nr(gameParams.get_int_arg("nr")), nc(gameParams.get_int_arg("nc")), linesize(gameParams.get_int_arg("linesize")), turn(turn), last_move_at(-1){}
 
 
-int agent::play_move(){}
+int agent::play_move(){return 0;}
 void agent::opponent_move(int pos){}
 
 random_rollout::random_rollout(string name, argdict gameParams, argdict TreeArgDict, int turn): agent(name, gameParams, turn){
-	tree = new VanillaTree(TreeArgDict);
+	if (!TreeArgDict.has_str("TreeType"))
+		tree = new VanillaTree(TreeArgDict);
+	else{
+		string treetype = toLower(TreeArgDict.get_str_arg("TreeType"));
+		if (treetype == "vanilla")
+			tree = new VanillaTree(TreeArgDict);
+		else if (treetype == "infidepth")
+			tree = new InfiDepthTree(TreeArgDict);
+		else{
+			throw logic_error("Invalid treetype "+treetype+"\n");
+		}
+	}
 }
 
 int random_rollout::play_move(){

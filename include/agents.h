@@ -1,3 +1,8 @@
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+
 #include "tree.h"
 #include "utils.h"
 #include "argdict.h"

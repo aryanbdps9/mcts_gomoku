@@ -2,8 +2,10 @@
 
 #define Included_NameModel_JAP
 
+#include <iostream>
+#include <vector>
 
-#include <bits/stdc++.h>
+
 using namespace std;
 
 int judge(const vector<vector<int> > &board, int last_action, int linesize);

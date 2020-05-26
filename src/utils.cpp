@@ -1,8 +1,24 @@
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <cctype>
+#include <string>
+
 #include "utils.h"
-#include <bits/stdc++.h>
+
+
 using namespace std;
 
 double get_random() { return (double)rand() / (double)RAND_MAX; }
+
+string toLower(string s){
+	string s_(s);
+	std::transform(s_.begin(), s_.end(), s_.begin(),
+    [](unsigned char c){ return std::tolower(c); }); // copied from https://stackoverflow.com/a/313990/7736191
+	return s_;
+}
 
 vector<int> free_locns(vector<vector<int> > board){
     vector<int> free_actions;

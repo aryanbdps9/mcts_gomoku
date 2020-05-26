@@ -2,10 +2,15 @@
 
 #define Included_NameModel_Utils
 
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
 using namespace std;
 
 double get_random();
+
+string toLower(string s);
 
 class NotImplementedException : public std::logic_error{
 public:

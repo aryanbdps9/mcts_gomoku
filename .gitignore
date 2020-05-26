@@ -108,9 +108,14 @@ venv.bak/
 *.out
 cpp_tuning
 build
-mcts.out
 backup
 .vscode
 *.log
 *.parsed
 *bkup*
+*.exe
+objects
+out
+CMakeLists.txt
+mcts_gomoku
+*.stats

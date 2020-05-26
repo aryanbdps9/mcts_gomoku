@@ -2,12 +2,14 @@
 
 #define Included_NameModel_Tree
 
-#include<bits/stdc++.h>
+#include <mutex>
+#include <functional>
+#include <vector>
+
 #include "utils.h"
 #include "shuffle_set.h"
 #include "judge_and_potential.h"
 #include "argdict.h"
-
 
 using namespace std;
 
@@ -92,8 +94,8 @@ public:
 
 class VanillaTree: public BaseTree{
 private:
-	VanillaTree();
 public:
+	VanillaTree();
 	VanillaNode<VanillaTree>* root;
 	const int32_t num_rollout_workers, num_rollouts, max_depth, timeout, linesize;
 	int max_rollout_len=50;
@@ -118,27 +120,16 @@ public:
 	}
 };
 
-// template <typename TreeType>
-// class GameOverPropagatorNode:public VanillaNode<TreeType>{
-// private:
-// 	GameOverPropagatorNode();
-// public:
-// 	int gameoverCount = 0;
-// 	GameOverPropagatorNode(int parent_action, GameOverPropagatorNode<TreeType>* parent); // for non-root init
-// 	GameOverPropagatorNode(TreeType* tree, vector<vector<int> > board, uint32_t turn=1); //for root init
-// 	~GameOverPropagatorNode();
-// 	virtual void childGameOver(int newgameover);
-// };
-
-// class GameOverPropagatorTree: public VanillaTree{
-// private:
-// 	GameOverPropagatorTree();
-// public:
-// 	GameOverPropagatorTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1, int potfn_v=1);
-// 	GameOverPropagatorTree(argdict TreeArgDict);
-// 	~GameOverPropagatorTree();
-// };
-
+class InfiDepthTree: public VanillaTree{
+	private:
+	InfiDepthTree();
+public:
+	const uint32_t childless_visit_limit;
+	InfiDepthTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int childless_visit_limit, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1, int potfn_v=1);
+	InfiDepthTree(argdict InfiDepthTreeArgDict);
+	~InfiDepthTree();
+	virtual void playout();
+};
 
 
 

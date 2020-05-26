@@ -1,6 +1,10 @@
 import argparse
 import os
 
+"""
+python main_wrapper.py -b 11 -l 5 -m 11 -r 96 -d 6 -t 5 -w 64 -g 1 -a 0.0 -z 0.0 -c 0.0 -z1 2 -p 4 -A 0.0 -Z 0.0 -C 0.0 -Z1 3 -P 4 -v 2
+"""
+
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-b", "--board_size", type=int, default=11)
@@ -19,6 +23,7 @@ def main():
 	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
 	parser.add_argument("-z1", "--beta1_1", type=float, default=0.1)
 	parser.add_argument("-p", "--pf_version_1", type=int, default=1)
+	parser.add_argument("-s", "--tree_type_1", type=str, default="vanilla")
 
 	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)
 	parser.add_argument("-D", "--max_depth_2", type=int, default=-1)
@@ -30,6 +35,7 @@ def main():
 	parser.add_argument("-Z", "--beta_2", type=float, default=-1.0)
 	parser.add_argument("-Z1", "--beta1_2", type=float, default=-0.1)
 	parser.add_argument("-P", "--pf_version_2", type=int, default=-1)
+	parser.add_argument("-S", "--tree_type_2", type=str, default="s")
 
 	args = parser.parse_args()
 
@@ -53,16 +59,30 @@ def main():
 		args.beta1_2 = args.beta1_1
 	if (args.pf_version_2 < 0):
 		args.pf_version_2 = args.pf_version_1
+	if (args.tree_type_2 == 's'):
+		args.tree_type_2 = args.tree_type_1
 
 	N, linesize = args.board_size, args.line_size
 	num_rollouts_1, max_depth_1, timeout_1 = args.num_rollouts_1, args.max_depth_1, args.timeout_1
 	num_rollouts_2, max_depth_2, timeout_2 = args.num_rollouts_2, args.max_depth_2, args.timeout_2
 	mode = int(args.mode[-2:], 2)
-	# os.makedirs('objects',exist_ok=True)
-	if (args.make == 'yes'):
-		os.system('make')
+	os.makedirs('build',exist_ok=True)
+	if (args.make == 'yes' and os.name != 'nt'):
+		if (os.path.isfile('Makefile')):
+			os.system('make')
+		else:
+			os.chdir("build")
+			os.system('cmake ..')
+			os.system('make VERBOSE=1')
+			os.system('cp mcts_gomoku ..')
+			os.chdir("..")
+	if (os.name == 'nt'):
+		executable_name = "build\\Debug\\mcts_gomoku.exe"
+	else:
+		executable_name = "./mcts_gomoku"
 
-	cmd_str = f"./mcts.out {N} {linesize} {mode} {args.verbose} {num_rollouts_1} {max_depth_1} {timeout_1} {args.num_workers_1} {args.exploration_coeff_1} {args.gamma_1} {args.alpha_1} {args.beta_1} {num_rollouts_2} {max_depth_2} {timeout_2} {args.num_workers_2} {args.exploration_coeff_2} {args.gamma_2} {args.alpha_2} {args.beta_2}  {args.beta1_1} {args.beta1_2} {args.pf_version_1} {args.pf_version_2}"
+	cmd_str = f"{executable_name} {N} {linesize} {mode} {args.verbose} {num_rollouts_1} {max_depth_1} {timeout_1} {args.num_workers_1} {args.exploration_coeff_1} {args.gamma_1} {args.alpha_1} {args.beta_1} {num_rollouts_2} {max_depth_2} {timeout_2} {args.num_workers_2} {args.exploration_coeff_2} {args.gamma_2} {args.alpha_2} {args.beta_2}  {args.beta1_1} {args.beta1_2} {args.pf_version_1} {args.pf_version_2} {args.tree_type_1} {args.tree_type_2}"
+	print(cmd_str)
 	os.system(cmd_str)
 
 if __name__ == '__main__':

@@ -1,9 +1,20 @@
-#include<bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <assert.h>
+#include <thread>
+#include <math.h>
+#include <numeric>
+#include <mutex>
+
 #include "tree.h"
 #include "utils.h"
 #include "shuffle_set.h"
 #include "judge_and_potential.h"
 #include "argdict.h"
+
 
 using namespace std;
 
@@ -307,7 +318,6 @@ VanillaTree::VanillaTree(int linesize, int nr, int nc, int turn, int num_rollout
 
 VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDict.get_dbl_arg("C")), num_rollouts(VanillaTreeArgDict.get_int_arg("num_rollouts")), num_rollout_workers(VanillaTreeArgDict.get_int_arg("num_rollout_workers")), max_depth(VanillaTreeArgDict.get_int_arg("max_depth")), timeout(VanillaTreeArgDict.get_int_arg("timeout")), linesize(VanillaTreeArgDict.get_int_arg("linesize")){
 	int potfn_v = VanillaTreeArgDict.has_int("potfn_v") ? VanillaTreeArgDict.get_int_arg("potfn_v") : 1;
-	cout << "potfn_v = " << potfn_v << endl;
 
 	switch (potfn_v){
 	case 1:
@@ -373,7 +383,7 @@ void VanillaTree::playout(){
 			break;
 		}
 		depth++;
-		if (depth < max_depth) current_node->expand();
+		if (depth < max_depth && current_node->isLeaf()) current_node->expand();
 	}
 	double leaf_value;
 
@@ -453,6 +463,7 @@ int VanillaTree::getMove(){
 	cout << "num_selects = " << num_selects << endl;
 
 	root->killAllExcept(best_action);
+	cout << "after killAllExcept!" << endl;
 	VanillaNode<VanillaTree>* newroot = static_cast<VanillaNode<VanillaTree>*>(root->children[best_action]);
 	root->children.clear();
 	delete root;
@@ -544,20 +555,31 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	int total_budget = num_rollouts * max_steps_to_game_end;
 	int total_budget_per_worker = total_budget / num_rollout_workers;
 
-	int total_rollouts_performed[num_rollout_workers], total_rollouts_completed[num_rollout_workers], total_reward_plr1[num_rollout_workers];
+	// int total_rollouts_performed[num_rollout_workers], total_rollouts_completed[num_rollout_workers], total_reward_plr1[num_rollout_workers];
+	int *total_rollouts_performed = new int[num_rollout_workers];
+	int *total_rollouts_completed = new int[num_rollout_workers];
+	int *total_reward_plr1 = new int[num_rollout_workers];
 
-	thread workers[num_rollout_workers];
+	thread *workers = new thread[num_rollout_workers];
 	for(int i = 0; i < num_rollout_workers; i++){
 		workers[i] = thread(rollout_worker, std::ref(leaf->board), linesize, leaf->parent_action, total_budget_per_worker, max_rollout_len, this->gameJudge, total_rollouts_performed+i, total_rollouts_completed+i, total_reward_plr1+i);
 	}
 	for(int i = 0; i < num_rollout_workers; i++){
 		workers[i].join();
 	}
+	delete[] workers;
 
 	int total_completed_rollouts = std::accumulate(total_rollouts_completed, total_rollouts_completed+num_rollout_workers, 0);
-	if (total_completed_rollouts == 0) return 0.0;
+	delete[] total_rollouts_completed;
+	delete[] total_rollouts_performed;
+
+	if (total_completed_rollouts == 0){
+		delete[] total_reward_plr1;
+		return 0.0;
+	}
 
 	int total_reward = std::accumulate(total_reward_plr1, total_reward_plr1+num_rollout_workers, 0);
+	delete[] total_reward_plr1;
 
 	int last_action = leaf->parent_action;
 	int nr = leaf->board.size(), nc = leaf->board[0].size();
@@ -565,6 +587,64 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	if (current_plr == 2) total_reward *= -1;
 	return (1.0*total_reward) / (1.0 * total_completed_rollouts);
 }
+
+
+InfiDepthTree::InfiDepthTree(): VanillaTree(), childless_visit_limit(1){}
+
+InfiDepthTree::InfiDepthTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int childless_visit_limit, int timeout, int num_workers, double gamma, double alpha, double beta, double beta1, int potfn_v): VanillaTree(linesize, nr, nc, turn, num_rollouts, C, 2, timeout, num_rollout_workers, gamma, alpha, beta, beta1, potfn_v), childless_visit_limit(childless_visit_limit){
+}
+
+InfiDepthTree::InfiDepthTree(argdict InfiDepthTreeArgDict): VanillaTree(InfiDepthTreeArgDict), childless_visit_limit(InfiDepthTreeArgDict.get_int_arg("childless_visit_limit")){}
+
+InfiDepthTree::~InfiDepthTree(){}
+
+void InfiDepthTree::playout(){
+	VanillaNode<VanillaTree>* current_node = root;
+	assert (root != nullptr);
+	int current_action;
+	current_node->expand();
+	unsigned int depth = 1;
+
+	while(!current_node->isLeaf()){
+		current_action = current_node->select(); // TODO use lock for MT
+		current_node->inc_visit(); // TODO use lock for MT
+		current_node = static_cast<VanillaNode<VanillaTree>*>( current_node->children[current_action]);
+
+		if (current_node->gameover != 0){
+			current_node->set_value((current_node->gameover == current_node->turn?1:-1));
+			break;
+		}
+		depth++;
+		// if (current_node->get_visits() > this->childless_visit_limit){
+		// 	current_node->expand();
+		// }
+		// if (depth < max_depth) current_node->expand();
+	}
+	double leaf_value;
+
+	current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
+	if (current_node->isLeaf() && current_node->gameover == 0){
+		if (current_node->get_visits() > this->childless_visit_limit)
+			current_node->expand();
+		leaf_value = getRolloutValue(current_node);
+		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
+	}
+
+	current_node = static_cast<VanillaNode<VanillaTree>*>(current_node->parent);
+	double temp_value, len_reward, val_reward;
+
+	while (current_node != nullptr){
+		temp_value = 0.0;
+		for (auto [action, child]: current_node->children){
+			len_reward = alpha*static_cast<VanillaNode<VanillaTree>*>(child)->potential;
+			val_reward = -(gamma * child->value);
+			temp_value += (len_reward+val_reward)*child->visits;
+		}
+		current_node->set_value(temp_value/current_node->visits); // TODO use lock for MT
+		current_node = static_cast<VanillaNode<VanillaTree>*>(current_node->parent);
+	}
+}
+
 
 // template <typename TreeType>
 // GameOverPropagatorNode<TreeType>::GameOverPropagatorNode(){}

@@ -1,6 +1,9 @@
-#include<bits/stdc++.h>
 #include "utils.h"
 #include "judge_and_potential.h"
+
+#include <iostream>
+#include <vector>
+#include <assert.h>
 
 using namespace std;
 
