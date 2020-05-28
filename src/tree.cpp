@@ -24,15 +24,13 @@ template <typename TreeType>
 BaseNode<TreeType>::BaseNode(): tree(nullptr), parent(nullptr), value(0.0), turn(0), parent_action(-1){}
 
 template <typename TreeType>
-BaseNode<TreeType>::BaseNode(int parent_action, BaseNode<TreeType>* parent): tree(parent->tree), board(parent->board), parent(parent), parent_action(parent_action){
+BaseNode<TreeType>::BaseNode(int parent_action, BaseNode<TreeType>* parent): tree(parent->tree), parent(parent), parent_action(parent_action){
 	assert(parent != nullptr);
 	turn = (parent->turn%2)+1;
-	int nr = board.size(), nc = board[0].size();
-	board[parent_action/nc][parent_action%nc] = parent->turn;
 }
 
 template <typename TreeType>
-BaseNode<TreeType>::BaseNode(TreeType* tree, vector<vector<int> > board, uint32_t turn): tree(tree), board(board), parent(nullptr), parent_action(-1), turn(turn){}
+BaseNode<TreeType>::BaseNode(TreeType* tree, uint32_t turn): tree(tree), parent(nullptr), parent_action(-1), turn(turn){}
 
 template <typename TreeType>
 BaseNode<TreeType>::~BaseNode(){
@@ -87,12 +85,6 @@ double BaseNode<TreeType>::getUCT(){
 	double v = -value;
 	double exploration_bonus = tree->C * sqrt(2*log(parent->visits + 1) / (visits+1.0));
 	return v + exploration_bonus;
-}
-
-template <typename TreeType>
-bool BaseNode<TreeType>::isEmptyLocn(int a){
-	int nc = board[0].size();
-	return board[a/nc][a%nc] == 0;
 }
 
 template <typename TreeType>
@@ -193,7 +185,7 @@ int VanillaNode<TreeType>::select(){
 }
 
 template <typename TreeType>
-int BaseNode<TreeType>::expand(){
+int BaseNode<TreeType>::expand(vector<vector<int> > &board){
 	if (!children.empty()) return 0;
 	int nr = board.size(), nc = board[0].size();
 	int count = 0;
@@ -238,10 +230,10 @@ void VanillaNode<TreeType>::offsetDepth(int offset){
 }
 
 template <typename TreeType>
-VanillaNode<TreeType>::VanillaNode(int parent_action, VanillaNode<TreeType>* parent): BaseNode<TreeType>(parent_action, parent){
+VanillaNode<TreeType>::VanillaNode(int parent_action, VanillaNode<TreeType>* parent, vector<vector<int> > &board): BaseNode<TreeType>(parent_action, parent){
 	this->depth = parent->depth+1;
 	// cout << "here 5124" << endl;
-	this->potential=this->tree->potential_fn(this->board, parent_action, this->gameover, this->tree->linesize);
+	this->potential=this->tree->potential_fn(board, parent_action, this->gameover, this->tree->linesize);
 	// cout << "here 214" << endl;
 	if (this->gameover != 0){
 		if (this->gameover == this->turn) this->value = 1;
@@ -250,24 +242,26 @@ VanillaNode<TreeType>::VanillaNode(int parent_action, VanillaNode<TreeType>* par
 }
 
 template <typename TreeType>
-VanillaNode<TreeType>::VanillaNode(TreeType* tree, vector<vector<int> > board, uint32_t turn): BaseNode<TreeType>(tree, board, turn){
+VanillaNode<TreeType>::VanillaNode(TreeType* tree, uint32_t turn): BaseNode<TreeType>(tree, turn){
 	this->depth=1;
 	this->potential = 0;
 	this->gameover = 0;
 }
 
 template <typename TreeType>
-int VanillaNode<TreeType>::expand(){
+int VanillaNode<TreeType>::expand(vector<vector<int> > &board){
 	if (!this->children.empty()) return 0;
-	int nr = this->board.size(), nc = this->board[0].size();
+	int nr = board.size(), nc = board[0].size();
 	int count = 0;
 	VanillaNode<TreeType>* new_node;
 	this->total_child_potential = 0;
 	for (int i = 0; i < nr * nc; i++){
 		// cout << "i = " << i << endl;
-		if (this->board[i/nc][i%nc] != 0) continue;
+		if (board[i/nc][i%nc] != 0) continue;
 		// cout << "here 23423432" << endl;
-		new_node = new VanillaNode<TreeType>(i, this);
+		board[i/nc][i%nc] = this->turn;
+		new_node = new VanillaNode<TreeType>(i, this, board);
+		board[i/nc][i%nc] = 0;
 		// cout << "here" << endl;
 		this->children[i] = new_node;
 		this->total_child_potential += new_node->getPotential();
@@ -311,9 +305,9 @@ VanillaTree::VanillaTree(int linesize, int nr, int nc, int turn, int num_rollout
 		potential_fn = calc_potential;
 		break;
 	}
-	vector<vector<int> > board(nr, vector<int>(nc, 0));
-	root = new VanillaNode<VanillaTree>(this, board, turn);
-	this->root->expand();
+	this->board = vector<vector<int> >(nr, vector<int>(nc, 0));
+	root = new VanillaNode<VanillaTree>(this, turn);
+	this->root->expand(this->board);
 }
 
 VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDict.get_dbl_arg("C")), num_rollouts(VanillaTreeArgDict.get_int_arg("num_rollouts")), num_rollout_workers(VanillaTreeArgDict.get_int_arg("num_rollout_workers")), max_depth(VanillaTreeArgDict.get_int_arg("max_depth")), timeout(VanillaTreeArgDict.get_int_arg("timeout")), linesize(VanillaTreeArgDict.get_int_arg("linesize")){
@@ -342,10 +336,12 @@ VanillaTree::VanillaTree(argdict VanillaTreeArgDict): BaseTree(VanillaTreeArgDic
 
 	int nc = VanillaTreeArgDict.get_int_arg("nc");
 	int nr = VanillaTreeArgDict.get_int_arg("nr");
-	vector<vector<int> >  board(nr, vector<int>(nc, 0));
 	int turn = VanillaTreeArgDict.get_int_arg("turn");
-	this->root = new VanillaNode<VanillaTree>(this, board, turn);
-	this->root->expand();
+
+	this->board = vector<vector<int> > (nr, vector<int>(nc, 0));
+	this->root = new VanillaNode<VanillaTree>(this, turn);
+	this->root->expand(this->board);
+
 	if (VanillaTreeArgDict.has_dbl("gamma"))
 		this->gamma = VanillaTreeArgDict.get_dbl_arg("gamma");
 	if (VanillaTreeArgDict.has_dbl("alpha"))
@@ -369,27 +365,31 @@ void VanillaTree::playout(){
 	*/
 	VanillaNode<VanillaTree>* current_node = root;
 	assert (root != nullptr);
+	current_node->expand(this->board);
+
 	int current_action;
-	current_node->expand();
 	unsigned int depth = 1;
+	vector<vector<int> > board_temp = this->board;
+	int nc = this->board[0].size();
 
 	while(!current_node->isLeaf()){
 		current_action = current_node->select(); // TODO use lock for MT
+		board_temp[current_action/nc][current_action%nc] = current_node->turn;
 		current_node->inc_visit(); // TODO use lock for MT
 		current_node = static_cast<VanillaNode<VanillaTree>*>( current_node->children[current_action]);
-		
+
 		if (current_node->gameover != 0){
 			current_node->set_value((current_node->gameover == current_node->turn?1:-1));
 			break;
 		}
 		depth++;
-		if (depth < max_depth && current_node->isLeaf()) current_node->expand();
+		if (depth < max_depth && current_node->isLeaf()) current_node->expand(board_temp);
 	}
 	double leaf_value;
 
 	current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
 	if (current_node->isLeaf() && current_node->gameover == 0){
-		leaf_value = getRolloutValue(current_node);
+		leaf_value = getRolloutValue(current_node, board_temp);
 		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
 	}
 
@@ -444,24 +444,25 @@ int VanillaTree::getMove(){
 		// 	best_action = action;
 		// }
 	}
-	int nr = root->board.size(), nc = root->board[0].size();
+	int nr = board.size(), nc = board[0].size();
 
 	if (this->verbose > 1){
 		cout << "printing GAMEOVER mat\n";
-		print_mat(get_gameover_mat(root));
+		print_mat(get_gameover_mat(this));
 
 		cout << "printing UCT mat\n";
-		print_mat(get_UCT_mat(root));
+		print_mat(get_UCT_mat(this));
 
 		cout << "printing value mat\n";
-		print_mat(get_Val_mat(root));
+		print_mat(get_Val_mat(this));
 
 		cout << "printing visit mat\n";
-		print_mat(get_visit_mat(root));
+		print_mat(get_visit_mat(this));
 		cout << endl;
 	}
 	cout << "num_selects = " << num_selects << endl;
 
+	board[best_action/nc][best_action%nc] = root->turn;
 	root->killAllExcept(best_action);
 	cout << "after killAllExcept!" << endl;
 	VanillaNode<VanillaTree>* newroot = static_cast<VanillaNode<VanillaTree>*>(root->children[best_action]);
@@ -476,9 +477,11 @@ int VanillaTree::getMove(){
 }
 
 void VanillaTree::opponentMove(int pos){
+	int nc = board[0].size();
+	board[pos/nc][pos%nc] = this->root->turn;
 	if (root->children.find(pos) == root->children.end()){
 		VanillaNode<VanillaTree>* oldroot = root;
-		root = new VanillaNode<VanillaTree>(pos, oldroot);
+		root = new VanillaNode<VanillaTree>(pos, oldroot, board);
 		delete oldroot;
 		root->parent = nullptr;
 		root->offsetDepth(-1);
@@ -540,14 +543,14 @@ void rollout_worker(const vector<vector<int> > &board_, int linesize, int last_m
 	*total_reward_plr1 = (num_plr1_wins - num_plr1_loss);
 }
 
-double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
+double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf, vector<vector<int> > &board){
 	/*
 	Each worker needs to spit out the following things:
 	- Total number of rollouts performed
 	- Total number of rollouts completed
 	- Sum of rewards of all rollouts wrt player 1.
 	*/
-	int max_steps_to_game_end = count_elems(leaf->board, 0);
+	int max_steps_to_game_end = count_elems(board, 0);
 	if (max_steps_to_game_end == 0){
 		cerr << "VanillaTree::getRolloutValue: called on tied match!";
 		return 0.0;
@@ -562,7 +565,7 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 
 	thread *workers = new thread[num_rollout_workers];
 	for(int i = 0; i < num_rollout_workers; i++){
-		workers[i] = thread(rollout_worker, std::ref(leaf->board), linesize, leaf->parent_action, total_budget_per_worker, max_rollout_len, this->gameJudge, total_rollouts_performed+i, total_rollouts_completed+i, total_reward_plr1+i);
+		workers[i] = thread(rollout_worker, std::ref(board), linesize, leaf->parent_action, total_budget_per_worker, max_rollout_len, this->gameJudge, total_rollouts_performed+i, total_rollouts_completed+i, total_reward_plr1+i);
 	}
 	for(int i = 0; i < num_rollout_workers; i++){
 		workers[i].join();
@@ -582,8 +585,8 @@ double VanillaTree::getRolloutValue(VanillaNode<VanillaTree>* leaf){
 	delete[] total_reward_plr1;
 
 	int last_action = leaf->parent_action;
-	int nr = leaf->board.size(), nc = leaf->board[0].size();
-	int current_plr = 1+((leaf->board[last_action/nc][last_action%nc])%2);
+	int nr = board.size(), nc = board[0].size();
+	int current_plr = 1+((board[last_action/nc][last_action%nc])%2);
 	if (current_plr == 2) total_reward *= -1;
 	return (1.0*total_reward) / (1.0 * total_completed_rollouts);
 }
@@ -601,9 +604,12 @@ InfiDepthTree::~InfiDepthTree(){}
 void InfiDepthTree::playout(){
 	VanillaNode<VanillaTree>* current_node = root;
 	assert (root != nullptr);
+	current_node->expand(this->board);
+
 	int current_action;
-	current_node->expand();
 	unsigned int depth = 1;
+	vector<vector<int> > board_temp = this->board;
+	int nc = this->board[0].size();
 
 	while(!current_node->isLeaf()){
 		current_action = current_node->select(); // TODO use lock for MT
@@ -625,8 +631,8 @@ void InfiDepthTree::playout(){
 	current_node->inc_visit(); // TODO use lock for MT // Also, 2 inc_visit() doesn't harm in this case bcoz of gameover
 	if (current_node->isLeaf() && current_node->gameover == 0){
 		if (current_node->get_visits() > this->childless_visit_limit)
-			current_node->expand();
-		leaf_value = getRolloutValue(current_node);
+			current_node->expand(board_temp);
+		leaf_value = getRolloutValue(current_node, board_temp);
 		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
 	}
 
