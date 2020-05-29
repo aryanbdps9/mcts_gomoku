@@ -2,7 +2,8 @@ import argparse
 import os
 
 """
-python main_wrapper.py -b 11 -l 5 -m 11 -r 96 -d 6 -t 5 -w 64 -g 1 -a 0.0 -z 0.0 -c 0.0 -z1 2 -p 4 -A 0.0 -Z 0.0 -C 0.0 -Z1 3 -P 4 -v 2
+python main_wrapper.py -b 11 -l 5 -m 11 -d 8 -t 5 -r 8 -w 4 -z1 10 -p 4 -R 8 -W 4 -Z1 10 -P 4 -v 2 -s vanilla -S vanilla
+python main_wrapper.py -m 11
 """
 
 def main():
@@ -13,16 +14,16 @@ def main():
 	parser.add_argument("-v", "--verbose", type=int, default=1)
 	parser.add_argument('--make', type=str, default="yes")
 
-	parser.add_argument("-r", "--num_rollouts_1", type=int, default=96)
-	parser.add_argument("-d", "--max_depth_1", type=int, default=5)
-	parser.add_argument("-t", "--timeout_1", type=int, default=8)
+	parser.add_argument("-r", "--num_rollouts_1", type=int, default=8)
+	parser.add_argument("-d", "--max_depth_1", type=int, default=6)
+	parser.add_argument("-t", "--timeout_1", type=int, default=5)
 	parser.add_argument("-w", "--num_workers_1", type=int, default=4)
-	parser.add_argument("-c", "--exploration_coeff_1", type=float, default=0.22)
+	parser.add_argument("-c", "--exploration_coeff_1", type=float, default=0.0)
 	parser.add_argument("-g", "--gamma_1", type=float, default=1.0)
 	parser.add_argument("-a", "--alpha_1", type=float, default=0.0)
-	parser.add_argument("-z", "--beta_1", type=float, default=0.1)
-	parser.add_argument("-z1", "--beta1_1", type=float, default=0.1)
-	parser.add_argument("-p", "--pf_version_1", type=int, default=1)
+	parser.add_argument("-z", "--beta_1", type=float, default=0.0)
+	parser.add_argument("-z1", "--beta1_1", type=float, default=10.0)
+	parser.add_argument("-p", "--pf_version_1", type=int, default=4)
 	parser.add_argument("-s", "--tree_type_1", type=str, default="vanilla")
 
 	parser.add_argument("-R", "--num_rollouts_2", type=int, default=-1)

@@ -23,7 +23,6 @@ private:
 	BaseNode();
 public:
 	TreeType* tree;
-	vector<vector<int> > board;
 	BaseNode<TreeType>* parent;
 	int parent_action = -1;
 	unordered_map<int, BaseNode<TreeType>*> children;
@@ -32,13 +31,13 @@ public:
 
 	// BaseNode() = 0;
 	BaseNode(int parent_action, BaseNode<TreeType>* parent); // for non-root init
-	BaseNode(TreeType* tree, vector<vector<int> > board, uint32_t turn=1); // for root init
+	BaseNode(TreeType* tree, uint32_t turn=1); // for root init
 	~BaseNode();
 	virtual bool killAllExcept(int action);
 	virtual int select();
-	virtual int expand();
+	virtual int expand(vector<vector<int> > &board);
 	virtual double getUCT();
-	bool isEmptyLocn(int a);
+	
 	inline bool isLeaf();
 	inline bool isRoot();
 	inline void inc_visit();
@@ -62,13 +61,13 @@ public:
 	int gameover = 0;
 	double depth;
 	int gameoverCount=0;
-	VanillaNode(int parent_action, VanillaNode<TreeType>* parent);// for non-root init
-	VanillaNode(TreeType* tree, vector<vector<int> > board, uint32_t turn=1); //for root init
+	VanillaNode(int parent_action, VanillaNode<TreeType>* parent, vector<vector<int> > &board);// for non-root init
+	VanillaNode(TreeType* tree, uint32_t turn=1); //for root init
 	~VanillaNode();
 	virtual double getUCT();
 	void calcUCT(double& uct_opp, double& exploration_bonus, int total_child_potential=0);
 	virtual int select();
-	virtual int expand();
+	virtual int expand(vector<vector<int> > &board);
 	inline virtual void childGameOver(int newgameover);
 	virtual void offsetDepth(int offset);
 	inline virtual int getPotential(){return potential;}
@@ -78,6 +77,7 @@ public:
 class BaseTree{
 public:
 	// BaseNode<BaseTree>* root;
+	vector<vector<int> > board;
 	double C;
 	BaseTree();
 	// BaseTree(BaseNode<BaseTree>* root);
@@ -106,15 +106,14 @@ public:
 	int verbose = 0;
 	int (*potential_fn) (const vector<vector<int> > &board, int last_action, int &gameover, int linesize);
 
-	// VanillaTree() = 0; // Was giving some kind of error.
 	VanillaTree(int linesize, int nr, int nc, int turn, int num_rollouts, double C, int max_depth, int timeout, int num_rollout_workers=4, double gamma=1.0, double alpha=0.1, double beta=0.2, double beta1=0.1, int potfn_v=1);
 	VanillaTree(argdict vanillaTreeArgDict);
 	~VanillaTree();
 	virtual void playout();
 	virtual int getMove();
 	virtual void opponentMove(int pos);
-	virtual double getRolloutValue(VanillaNode<VanillaTree>* leaf);
-	inline virtual vector<vector<int> > getBoard(){return root->board;}
+	virtual double getRolloutValue(VanillaNode<VanillaTree>* leaf, vector<vector<int> > &board);
+	inline virtual vector<vector<int> > getBoard(){return this->board;}
 	inline virtual void setVerbosity(int v){
 		this->verbose = v;
 	}
@@ -151,45 +150,68 @@ public:
 
 
 template <typename TreeType>
-vector<vector<double> > get_Val_mat(BaseNode<TreeType>* node){
-	int nr = node->board.size(), nc = node->board[0].size();
+vector<vector<double> > get_Val_mat(TreeType* tree){
+	int nr = tree->board.size(), nc = tree->board[0].size();
 	vector<vector<double> > res(nr, vector<double> (nc, 0.0));
-	for (auto [action, child]: node->children){
+	for (auto [action, child]: tree->root->children){
 		res[action/nc][action%nc] = -child->value;
 	}
 	return res;
 }
 
 template <typename TreeType>
-vector<vector<double> > get_UCT_mat(BaseNode<TreeType>* node){
-	int nr = node->board.size(), nc = node->board[0].size();
+vector<vector<double> > get_UCT_mat(TreeType* tree){
+	int nr = tree->board.size(), nc = tree->board[0].size();
 	vector<vector<double> > res(nr, vector<double> (nc, 0.0));
-	for (auto [action, child]: node->children){
+	for (auto [action, child]: tree->root->children){
 		res[action/nc][action%nc] = child->getUCT();
 	}
 	return res;
 }
 
 template <typename TreeType>
-vector<vector<int> > get_visit_mat(BaseNode<TreeType>* node){
-	int nr = node->board.size(), nc = node->board[0].size();
+vector<vector<double> > get_EB_mat(TreeType* tree){
+	double uct_opp, exploration_bonus;
+	int total_child_potential = tree->root->total_child_potential;
+	int nr = tree->board.size(), nc = tree->board[0].size();
+	vector<vector<double> > res(nr, vector<double> (nc, 0.0));
+	for (auto [action, child]: tree->root->children){
+		static_cast<VanillaNode<TreeType>*>(child)->calcUCT(uct_opp, exploration_bonus, total_child_potential);
+		res[action/nc][action%nc] = exploration_bonus;
+	}
+	return res;
+}
+
+template <typename TreeType>
+vector<vector<int> > get_visit_mat(TreeType* tree){
+	int nr = tree->board.size(), nc = tree->board[0].size();
 	vector<vector<int> > res(nr, vector<int> (nc, 0));
-	for (auto [action, child]: node->children){
+	for (auto [action, child]: tree->root->children){
 		res[action/nc][action%nc] = child->get_visits();
 	}
 	return res;
 }
 
 template <typename TreeType>
-vector<vector<int> > get_gameover_mat(BaseNode<TreeType>* node){
-	int nr = node->board.size(), nc = node->board[0].size();
+vector<vector<int> > get_gameover_mat(TreeType* tree){
+	int nr = tree->board.size(), nc = tree->board[0].size();
 	vector<vector<int> > res(nr, vector<int> (nc, -2));
-	for (auto [action, child]: node->children){
+	for (auto [action, child]: tree->root->children){
 		res[action/nc][action%nc] = static_cast<VanillaNode<TreeType>*>(child)->gameover;
 	}
 	return res;
 }
 
+template <typename TreeType>
+vector<vector<int> > get_potential_mat(TreeType* tree){
+	int nr = tree->board.size(), nc = tree->board[0].size();
+	vector<vector<int> > res(nr, vector<int> (nc, -2));
+	for (auto [action, child]: tree->root->children){
+		res[action/nc][action%nc] = static_cast<VanillaNode<TreeType>*>(child)->potential;
+	}
+	return res;
+}
+ 
 
 
 #endif

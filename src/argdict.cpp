@@ -78,7 +78,7 @@ string argdict::print(){
     for (auto key: dbl_keys){
         buffer << key << "\t" << double_args[key] << endl;
     }
-    
+
     buffer << "printing string args" << endl;
     vector<string> str_keys;
     for (auto child: string_args){

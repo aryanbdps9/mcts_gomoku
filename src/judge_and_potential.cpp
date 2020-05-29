@@ -177,7 +177,9 @@ int calc_potential2(const vector<vector<int> > &board, int last_action, int &gam
 	int count_hori = counts[2]+counts[3]+1, fill_hori = fc_mat[3]+fc_mat[2] + 1;
 	int count_vert = counts[0]+counts[1]+1, fill_vert = fc_mat[0]+fc_mat[1] + 1;
 	int count_maindiag = counts[4]+counts[7]+1, fill_maindiag = fc_mat[4]+fc_mat[7]+1;
-	int count_othrdiag = counts[5]+counts[6]+1, fill_othrdiag = fc_mat[5]+fc_mat[7]+1;
+	int count_othrdiag = counts[5]+counts[6]+1, fill_othrdiag = fc_mat[5]+fc_mat[6]+1;
+
+	delete[] fc_mat;
 
 	if (fill_hori < linesize) count_hori = 1;
 	if (fill_vert < linesize) count_vert = 1;
