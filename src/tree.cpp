@@ -127,7 +127,8 @@ double VanillaNode<TreeType>::getUCT(){
 
 	this->calcUCT(val_opp, exploration_bonus, total_child_potential);
 	if (this->gameover == this->turn){ // remember, this is child, calcing UCT for parent!
-		return (0-1) + exploration_bonus;
+		return std::numeric_limits<double>::lowest() / 16;
+		// return (0-1) + exploration_bonus;
 	} else if (this->gameover == opp_move){
 		return std::numeric_limits<double>::max() / 16;
 	}
@@ -171,7 +172,7 @@ int VanillaNode<TreeType>::select(){
 		}
 		if (gameovercnt > 0) continue;
 		current_uct = child.second->getUCT();
-		if (current_uct > best_uct){
+		if (best_action == -1 || current_uct > best_uct){
 			best_uct = current_uct;
 			best_action = child.first;
 			best_cnt = 1.0;
@@ -272,7 +273,8 @@ int VanillaNode<TreeType>::expand(){
 		this->children[i] = new_node;
 		this->total_child_potential += new_node->getPotential();
 		count++;
-		if (new_node->gameover == this->turn) {
+		// if (new_node->gameover == this->turn) {
+		if (new_node->gameover != 0){
 			this->childGameOver(this->turn);
 			// this->killAllExcept(i);
 			// break;
@@ -370,20 +372,22 @@ void VanillaTree::playout(){
 	VanillaNode<VanillaTree>* current_node = root;
 	assert (root != nullptr);
 	int current_action;
+	current_node->inc_visit(); // TODO use lock for MT
 	current_node->expand();
 	unsigned int depth = 1;
 
 	while(!current_node->isLeaf()){
 		current_action = current_node->select(); // TODO use lock for MT
-		current_node->inc_visit(); // TODO use lock for MT
 		current_node = static_cast<VanillaNode<VanillaTree>*>( current_node->children[current_action]);
+		current_node->inc_visit(); // TODO use lock for MT
 		
 		if (current_node->gameover != 0){
-			current_node->set_value((current_node->gameover == current_node->turn?1:-1));
+			// current_node->set_value((current_node->gameover == current_node->turn?1:-1));
 			break;
 		}
 		depth++;
 		if (depth < max_depth && current_node->isLeaf()) current_node->expand();
+		if (current_node->gameover != 0) break;
 	}
 	double leaf_value;
 
@@ -397,6 +401,10 @@ void VanillaTree::playout(){
 	double temp_value, len_reward, val_reward;
 
 	while (current_node != nullptr){
+		if (current_node->visits == 0 || current_node->gameover != 0){
+			current_node = static_cast<VanillaNode<VanillaTree>*>(current_node->parent);
+			continue;
+		}
 		temp_value = 0.0;
 		for (auto [action, child]: current_node->children){
 			len_reward = alpha*static_cast<VanillaNode<VanillaTree>*>(child)->potential;
@@ -626,8 +634,10 @@ void InfiDepthTree::playout(){
 	if (current_node->isLeaf() && current_node->gameover == 0){
 		if (current_node->get_visits() > this->childless_visit_limit)
 			current_node->expand();
-		leaf_value = getRolloutValue(current_node);
-		current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
+		if (current_node->gameover == 0){
+			leaf_value = getRolloutValue(current_node);
+			current_node->set_value(leaf_value); // Notice how previous rollouts aren't being utilised. This is laziness :)
+		}
 	}
 
 	current_node = static_cast<VanillaNode<VanillaTree>*>(current_node->parent);
