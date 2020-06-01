@@ -22,3 +22,6 @@ With -v = 2 will show the debug output with details of visits and UCT matrices o
 Some other useful arguments are:
 - `-b`: Board size
 - `-l`: Line size. A player will have to make a line of this size to win.
+
+## Next step
+Implement RAVE
